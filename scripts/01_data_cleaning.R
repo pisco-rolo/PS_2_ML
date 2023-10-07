@@ -77,3 +77,62 @@ estadistica_descriptiva <- dataset |>
 
 gtsave(as_gt(estadistica_descriptiva), 
        filename="views/estadisticaDescriptiva.tex")
+
+# 4| Gráficas -------------------------------------------------------------
+# 4.1| Distribuciones de probabilidad -------------------------------------
+# Importante ver no solo los precios de los inmuebles, sino el precio por 
+# metro cuadrado.
+base_exp     = 1
+heightExp    = 1
+widthExp     = 1.2
+scale_factor = base_exp/widthExp
+
+options(scipen=-1)
+graficaExportar <- dataset |> 
+  mutate(num_precio_m2 = round(x = num_precio/num_area_total, digits = 0)) |> 
+  select(c('num_precio', 'num_precio_m2')) |>
+  pivot_longer(cols = everything(), names_to = 'Variable', values_to = 'Valores') |> 
+  mutate(Variable = case_when(Variable == 'num_precio' ~ 'Precio del inmueble',
+                              Variable == 'num_precio_m2' ~ 'Precio por metro cuadrado')) |> 
+  ggplot(mapping = aes(x = Valores, color = factor(1), fill = factor(1))) + 
+  facet_wrap(facets = ~ Variable, nrow = 1, scales = 'free') +
+  geom_histogram(aes(y=..density..), 
+                 position = "identity", alpha = 0.3, show.legend = FALSE) +
+  labs(title    = 'Distribución de probabilidad del precio de inmueble y por metro cuadrado.',
+       subtitle = '',
+       caption  = '',
+       x        = 'Pesos colombianos\n(Medidos en millones)',
+       y        = '') +
+  geom_density(alpha = .2, show.legend = FALSE)  +
+  scale_color_manual(values = c("#E69F00")) +
+  scale_fill_manual(values = c("#E69F00")) +
+  theme_classic() +
+  scale_y_continuous(limits = c(0, NA), 
+                     expand = expansion(mult = c(0, .05))) +
+  scale_x_continuous(expand = expansion(mult = c(0, .05)),
+                     labels = scales::label_number(scale = 0.000001, 
+                                                   accuracy = 1, 
+                                                   big.mark = ',')) +
+  theme(legend.position = 'bottom',
+        text            = element_text(family = 'Georgia'),
+        axis.text.x     = element_text(size = scale_factor * 10, family = 'Georgia'),
+        axis.text.y     = element_text(size = scale_factor * 10, family = 'Georgia'),
+        axis.title.x    = element_text(hjust = 0.5, size = scale_factor * 10, family = 'Georgia'),
+        axis.title.y    = element_text(hjust = 0.5, size = scale_factor * 10, family = 'Georgia'),
+        legend.text     = element_text(size = scale_factor * 10, family = 'Georgia'),
+        strip.text      = element_text(size = scale_factor * 10, family = 'Georgia'),
+        plot.title      = element_text(face = 'bold', size = 10, family = 'Georgia'),
+        plot.subtitle   = element_text(size = 10, family = 'Georgia'),
+        legend.key.size = unit(0.5 * scale_factor, 'cm')) 
+
+nombreArchivo <- 'distribucion_precios.png'
+ggsave(filename = paste0(directorioResultados, nombreArchivo), plot = graficaExportar,
+       width = 6 * widthExp, height = 4 * heightExp * widthExp, scale = scale_factor)
+options(scipen=999)
+
+# 4.2| Mapas --------------------------------------------------------------
+leaflet() %>%
+  addTiles() %>%
+  addCircles(lng = dataset$num_longitud, 
+             lat = dataset$num_latitud,
+             col = '#F4A261')
