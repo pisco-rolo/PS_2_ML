@@ -6,10 +6,12 @@
 # 1| Preparacion ----------------------------------------------------------
 rm(list = ls())
 graphics.off()
+options(scipen=999)
 set.seed(123)                       # Replicabilidad en las simulaciones.
 
 # 1.1| Librerias ----------------------------------------------------------
-librerias    <- c('here', 'tidyverse', 'tidymodels', 'conflicted')
+librerias    <- c('here', 'tidyverse', 'tidymodels', 'conflicted', 'xtable',
+                  'gtsummary', 'gt')
 noInstaladas <- librerias[!(librerias %in% rownames(installed.packages()))]
 
 if(length(noInstaladas)){
