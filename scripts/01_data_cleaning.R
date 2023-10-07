@@ -18,6 +18,7 @@ dataset <- dataset |> select(-c('id_ciudad', 'cat_venta'))
 dataset_kaggle <- dataset_kaggle |> select(-c('id_ciudad', 'cat_venta'))
 
 # 2| Limpieza -------------------------------------------------------------
+# 2.1| Conteo de valores faltantes ----------------------------------------
 # Determinamos el número de valores faltantes en cada una de las variables.
 nombres_latex <- c('ID Hogar', 'Precio del inmueble', 'Mes', 'Año', 
                    'Área total', 'Área cubierta', 'Número de habitaciones', 
@@ -39,6 +40,63 @@ print(xtable(x = tib_datos_faltantes, type = "latex",
       table.placement = 'H!',
       caption.placement = 'top',
       include.rownames = FALSE)
+
+# 2.2| Limpieza con expresiones regulares ---------------------------------
+# se podría llenar los valores faltantes en 'surface_total' y 'surface_covered' con 0
+# Las columnas surface_total y  'surface_covered' se refieren a las características de una propiedad inmobiliaria, como un apartamento o una casa. 
+# Estas columnas pueden representar el área total de la propiedad y el área cubierta de la propiedad, respectivamente.
+
+# TODO. Extraer los metros mediante expresiones regulares, y los datos faltantes sí llenarlos con
+# la media en lugar de cero.  
+combined_data <- combined_data %>%
+  mutate(surface_total = ifelse(is.na(surface_total), 0, surface_total),
+         surface_covered = ifelse(is.na(surface_covered), 0, surface_covered))
+
+# TODO. Rellenar número de habitaciones y número de baños.
+
+# TODO. Validar que el área total sea mayor o igual a la cubierta.
+
+# TODO. Verificar que el tipo de la propiedad sí sea casa o apartamento y sobreescribir la variable.
+combined_data <- combined_data %>%
+  mutate(property_type_2 = ifelse(grepl("casa", tex_descripcion), "casa", property_type))
+
+combined_data <- combined_data %>%
+  mutate(property_type_2 = ifelse(grepl("apto|apartamento", tex_descripcion), "apartamento", property_type_2)) %>%
+  select(-property_type)
+
+# TODO. Validar si una casa tiene garaje o parqueadero.
+combined_data <- combined_data %>%
+  mutate(cat_parqueadero = ifelse(grepl("garage|parqueadero", tex_descripcion, ignore.case = TRUE), 1, 0))
+
+#con este codigo se intenta extraer información sobre el piso desde la descripción de la propiedad utilizando expresiones regulares. 
+#Luego, se convierten los números escritos en números numéricos para estandarizarlos. 
+#Finalmente, se crea una nueva columna llamada "piso_numerico" que contiene el número de piso, y se descartan los valores que son mayores de 20(puede ser cuestionable),posiblemente porque son considerados atípicos o incorrectos
+
+combined_data <- combined_data %>%
+  mutate(piso_info = str_extract(description, "(\\w+|\\d+) piso (\\w+|\\d+)"))
+
+numeros_escritos <- c("uno|primero|primer", "dos|segundo|segund", "tres|tercero|tercer", "cuatro|cuarto", "cinco|quinto", "seis|sexto", "siete|septimo", "ocho|octavo", "nueve|noveno", "diez|decimo|dei")
+numeros_numericos <- as.character(1:10)
+
+combined_data <- combined_data %>%
+  mutate(piso_info = str_replace_all(piso_info, setNames(numeros_numericos, numeros_escritos)))
+
+combined_data <- combined_data %>%
+  mutate(piso_numerico = as.integer(str_extract(piso_info, "\\d+")))
+
+combined_data <- combined_data %>%
+  mutate(piso_numerico = ifelse(piso_numerico > 20, NA, piso_numerico))
+
+# Imputación de valores faltantes en la variable 'piso_numerico'
+# Este codigo calcula la de frecuencia de los valores en la variable 'piso_numerico' dentro de cada grupo de 'property_type_2', luego ordena la tabla en orden descendente y selecciona el primer valor, que corresponde a la moda.
+combined_data <- combined_data %>%
+  group_by(property_type_2) %>%
+  mutate(piso_numerico = ifelse(is.na(piso_numerico), as.integer(names(sort(table(piso_numerico), decreasing = TRUE)[1])), piso_numerico)) %>%
+  ungroup()
+
+# 2.3| Limpieza con imputación --------------------------------------------
+
+
 
 # 3| Estadística descriptiva ----------------------------------------------
 # Si bien los meses o años son variables numéricas, en realidad son categóricas
