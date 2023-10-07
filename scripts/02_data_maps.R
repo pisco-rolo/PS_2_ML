@@ -21,3 +21,37 @@ vector_distance <- apply(X = matrix_distance, MARGIN = 1, FUN = min)
 
 # TODO. ¿En qué unidades está medida la distancia?
 dataset <- dataset |> mutate(num_distancia_universidades = vector_distance)
+
+# 1.2| Zonas sociales -----------------------------------------------------
+# Conteo del número de restaurantes, bares, cafés, y pubs en un área.
+
+
+# 1.3| Distancia de calles principales ------------------------------------
+# Incluir la forma cuadrática por el costo de vivir demasiado cerca de la 
+# principal.
+
+
+# 1.4| Transmilenio -------------------------------------------------------
+# - Segmentar la ciudad en zonas residenciales y zonas empresariales.
+# - Distancia a la estación de TM más cercana.
+
+
+# 1.5| Centros comerciales ------------------------------------------------
+# Distancia del centro comercial más cercano.
+c('shop', 'mall')
+
+# 1.6| Parques ------------------------------------------------------------
+# Área del parque más cercano.
+
+
+# 1.7| CAI ----------------------------------------------------------------
+# Si no están en OSM, descargar de Datos Abiertos.
+c('amenity', 'police')
+
+# 1.8| Ciclovía -----------------------------------------------------------
+# Distancia de la ciclovía más cercana.
+
+
+# 1.9| Parqueaderos -------------------------------------------------------
+# Conteo del número de parqueaderos en un área.
+
