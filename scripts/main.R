@@ -11,7 +11,8 @@ set.seed(123)                       # Replicabilidad en las simulaciones.
 
 # 1.1| Librerias ----------------------------------------------------------
 librerias    <- c('here', 'tidyverse', 'tidymodels', 'conflicted', 'xtable',
-                  'gtsummary', 'gt')
+                  'gtsummary', 'gt', 'geos', 'tmaptools', 'sf', 'osmdata',
+                  'leaflet', 'extrafont')
 noInstaladas <- librerias[!(librerias %in% rownames(installed.packages()))]
 
 if(length(noInstaladas)){
@@ -19,6 +20,7 @@ if(length(noInstaladas)){
 }
 
 invisible(sapply(librerias, library, character.only = TRUE, quietly = TRUE))
+loadfonts(device = 'win') # Carga las fuentes de Windows. Primero ejecutar font_import().
 conflict_prefer(name = 'filter', winner = 'dplyr')
 conflict_prefer(name = 'spec', winner = 'yardstick')
 conflict_prefer(name = 'step', winner = 'recipes')
