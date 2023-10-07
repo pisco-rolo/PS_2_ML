@@ -1,8 +1,8 @@
 # 1| Importar -------------------------------------------------------------
 # Importamos la base de datos de entrenamiento y de evaluación.
 dataset <- read.csv(file = paste0(directorioDatos, 'train.csv'))
-dataset_kaggle <- read.csv(file = paste0(directorioDatos, 'test.csv'))
-
+dataset_kaggle <- read.csv(file = paste0(directorioDatos, 'test.csv'))
+ 
 # Definimos los nombres de las columnas tal y como trabajaremos en el futuro.
 nombres_variables   <- c('id_hogar', 'id_ciudad', 'num_precio', 'cat_mes', 
                          'cat_ano', 'num_area_total', 'num_area_cubierta', 
@@ -136,3 +136,4 @@ leaflet() %>%
   addCircles(lng = dataset$num_longitud, 
              lat = dataset$num_latitud,
              col = '#F4A261')
+             
