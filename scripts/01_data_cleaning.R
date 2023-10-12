@@ -7,6 +7,8 @@ dataset_kaggle <- read.csv(file = paste0(directorioDatos,'test.csv'))
 dataset_tm <- st_read(paste0(directorioDatos,'estaciones_trocales_trm.geojson'))
 #Importo la información de ciclovías en formato shapefile.
 dataset_ciclovia <- st_read(paste0(directorioDatos,'ciclovia/Ciclovia.shp'))
+#Importo mapa con localidades.
+dataset_localidades <- st_read(paste0(directorioDatos,'upla/UPla.shp'))
 
 # Definimos los nombres de las columnas tal y como trabajaremos en el futuro.
 nombres_variables   <- c('id_hogar', 'id_ciudad', 'num_precio', 'cat_mes', 
