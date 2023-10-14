@@ -118,12 +118,20 @@ plot(dataset$num_bano, dataset$num_precio, xlab = "Número de Baños", ylab = "P
 # TODO. Validar que el área total sea mayor o igual a la cubierta.
 
 # TODO. Verificar que el tipo de la propiedad sí sea casa o apartamento y sobreescribir la variable.
-combined_data <- combined_data %>%
-  mutate(property_type_2 = ifelse(grepl("casa", tex_descripcion), "casa", property_type))
+# Exploracion inicial, determinación de categorias 
+table(dataset$cat_tipo)
 
-combined_data <- combined_data %>%
-  mutate(property_type_2 = ifelse(grepl("apto|apartamento", tex_descripcion), "apartamento", property_type_2)) %>%
-  select(-property_type)
+# Definir la categoría "apartamento"
+dataset$cat_tipo <- ifelse(grepl("apartamento|apto|apartamento amoblado", dataset$tex_descripcion, ignore.case = TRUE), "apartamento", dataset$cat_tipo)
+
+# Definir la categoría "casa"
+dataset$cat_tipo <- ifelse(grepl("casa|chalet|casa campestre", dataset$tex_descripcion, ignore.case = TRUE), "casa", dataset$cat_tipo)
+
+# Definir la categoría "apartaestudio"
+dataset$cat_tipo <- ifelse(grepl("apartaestudio|estudio|miniapartamento", dataset$tex_descripcion, ignore.case = TRUE), "apartaestudio", dataset$cat_tipo)
+
+
+
 
 # TODO. Validar si una casa tiene garaje o parqueadero.
 combined_data <- combined_data %>%
