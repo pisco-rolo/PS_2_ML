@@ -21,8 +21,9 @@ colnames(test) <- nombres_variables
 
 # Variables como la ciudad o si se vendió la propiedad no nos son de interés
 # porque tienen un único valor y no aportan a la variabilidad de la predicción.
-dataset <- dataset |> select(-c('id_ciudad', 'cat_venta'))
-dataset_kaggle <- dataset_kaggle |> select(-c('id_ciudad', 'cat_venta'))
+library(dplyr)
+dataset <- train |> select(-c('id_ciudad', 'cat_venta'))
+dataset_kaggle <- test |> select(-c('id_ciudad', 'cat_venta'))
 
 # 2| Limpieza -------------------------------------------------------------
 # 2.1| Conteo de valores faltantes ----------------------------------------
@@ -49,17 +50,38 @@ print(xtable(x = tib_datos_faltantes, type = "latex",
       include.rownames = FALSE)
 
 # 2.2| Limpieza con expresiones regulares ---------------------------------
-# se podría llenar los valores faltantes en 'surface_total' y 'surface_covered' con 0
-# Las columnas surface_total y  'surface_covered' se refieren a las características de una propiedad inmobiliaria, como un apartamento o una casa. 
-# Estas columnas pueden representar el área total de la propiedad y el área cubierta de la propiedad, respectivamente.
+
+#.  
+
+# Verificar valores faltantes en dataset
+missing_values_dataset <- sapply(dataset, function(x) sum(is.na(x)))
+
+# Verificar valores faltantes en dataset_kaggle
+missing_values_kaggle <- sapply(dataset_kaggle, function(x) sum(is.na(x)))
+
+# Mostrar valores faltantes en dataset
+print(missing_values_dataset)
+
+# Mostrar valores faltantes en dataset_kaggle
+print(missing_values_kaggle)
+
 
 # TODO. Extraer los metros mediante expresiones regulares, y los datos faltantes sí llenarlos con
-# la media en lugar de cero.  
-combined_data <- combined_data %>%
-  mutate(surface_total = ifelse(is.na(surface_total), 0, surface_total),
-         surface_covered = ifelse(is.na(surface_covered), 0, surface_covered))
+# la media en lugar de cero
+
+# Extraer los metros de la columna num_area_total
+dataset$num_area_total <- as.numeric(gsub(".*?(\\d+\\.?\\d*)\\s*m2.*", "\\1", dataset$num_area_total, ignore.case = TRUE))
+
+# Extraer los metros de la columna num_area_cubierta
+dataset$num_area_cubierta <- as.numeric(gsub(".*?(\\d+\\.?\\d*)\\s*m2.*", "\\1", dataset$num_area_cubierta, ignore.case = TRUE))
+
 
 # TODO. Rellenar número de habitaciones y número de baños.
+
+# Baños.
+dataset$num_baño <- as.numeric(gsub(".*?(\\d+\\.?\\d*).*", "\\1", dataset$num_bano))
+dataset_kaggle$num_baño <- as.numeric(gsub(".*?(\\d+\\.?\\d*).*", "\\1", dataset_kaggle$num_bano))
+
 
 # TODO. Validar que el área total sea mayor o igual a la cubierta.
 
