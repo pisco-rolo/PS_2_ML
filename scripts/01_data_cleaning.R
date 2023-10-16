@@ -112,12 +112,13 @@ hist(dataset$num_bano, main = "Distribución de Número de Baños", xlab = "Núm
 # Las barras más altas indican que hay más propiedades con un número de baños en ese rango
 # El histograma muestra que la mayoría de las propiedades en el conjunto de datos tienen un número de baños en el rango de 1 a 3 baños. Hay un número relativamente bajo de propiedades con más de 3 baños
 # me parecio interesante mirar esta relacion entre "numero de baños y precio"
-plot(dataset$num_bano, dataset$num_precio, xlab = "Número de Baños", ylab = "Precio de la Propiedad", main = "Relación entre Número de Baños y Precio")
 
 
 # TODO. Validar que el área total sea mayor o igual a la cubierta.
 
 # TODO. Verificar que el tipo de la propiedad sí sea casa o apartamento y sobreescribir la variable.
+
+# DATASET
 # Exploracion inicial, determinación de categorias 
 table(dataset$cat_tipo)
 
@@ -130,42 +131,185 @@ dataset$cat_tipo <- ifelse(grepl("casa|chalet|casa campestre", dataset$tex_descr
 # Definir la categoría "apartaestudio"
 dataset$cat_tipo <- ifelse(grepl("apartaestudio|estudio|miniapartamento", dataset$tex_descripcion, ignore.case = TRUE), "apartaestudio", dataset$cat_tipo)
 
+# Verificación de las categorías
+cat_tipo_table <- table(dataset$cat_tipo)
+print(cat_tipo_table)
+
+# Corrección para estandarizar las categorías
+dataset$cat_tipo <- tolower(dataset$cat_tipo)  # Convertir a minúsculas para estandarizar
+
+# Reemplazar las categorías con variaciones
+dataset$cat_tipo <- gsub("apartaestudio|apartamento", "apartamento", dataset$cat_tipo)
+dataset$cat_tipo <- gsub("casa", "casa", dataset$cat_tipo)
+
+# Verificación de la distribución actualizada de las categorías
+cat_tipo_table <- table(dataset$cat_tipo)
+print(cat_tipo_table)
+
+#DATASET_KAGGLE 
+
+# Definir y asignar categorías en cat_tipo de dataset_kaggle
+dataset_kaggle$cat_tipo <- ifelse(grepl("apartamento|apto|apartamento amoblado", dataset_kaggle$tex_descripcion, ignore.case = TRUE), "apartamento", dataset_kaggle$cat_tipo)
+
+dataset_kaggle$cat_tipo <- ifelse(grepl("casa|chalet|casa campestre", dataset_kaggle$tex_descripcion, ignore.case = TRUE), "casa", dataset_kaggle$cat_tipo)
+
+dataset_kaggle$cat_tipo <- ifelse(grepl("apartaestudio|estudio|miniapartamento", dataset_kaggle$tex_descripcion, ignore.case = TRUE), "apartaestudio", dataset_kaggle$cat_tipo)
+
+# Verificación de las categorías en cat_tipo de dataset_kaggle
+cat_tipo_table_kaggle <- table(dataset_kaggle$cat_tipo)
+print(cat_tipo_table_kaggle)
+
+# Corrección para estandarizar las categorías en dataset_kaggle
+dataset_kaggle$cat_tipo <- tolower(dataset_kaggle$cat_tipo)  # Convertir a minúsculas para estandarizar
+
+# Reemplazar las categorías con variaciones
+dataset_kaggle$cat_tipo <- gsub("apartaestudio|apartamento", "apartamento", dataset_kaggle$cat_tipo)
+dataset_kaggle$cat_tipo <- gsub("casa", "casa", dataset_kaggle$cat_tipo)
+
+# Verificación de las categorías en cat_tipo de dataset_kaggle
+cat_tipo_table_kaggle <- table(dataset_kaggle$cat_tipo)
+print(cat_tipo_table_kaggle)
+
+
 
 
 
 # TODO. Validar si una casa tiene garaje o parqueadero.
-combined_data <- combined_data %>%
-  mutate(cat_parqueadero = ifelse(grepl("garage|parqueadero", tex_descripcion, ignore.case = TRUE), 1, 0))
 
-#con este codigo se intenta extraer información sobre el piso desde la descripción de la propiedad utilizando expresiones regulares. 
-#Luego, se convierten los números escritos en números numéricos para estandarizarlos. 
-#Finalmente, se crea una nueva columna llamada "piso_numerico" que contiene el número de piso, y se descartan los valores que son mayores de 20(puede ser cuestionable),posiblemente porque son considerados atípicos o incorrectos
+# Identificar las columnas relevantes en dataset
+columnas_relevantes_dataset <- c("tex_descripcion", "tex_titulo")
 
-combined_data <- combined_data %>%
-  mutate(piso_info = str_extract(description, "(\\w+|\\d+) piso (\\w+|\\d+)"))
+# Identificar las columnas relevantes en dataset_kaggle
+columnas_relevantes_kaggle <- c("tex_descripcion", "tex_titulo")
 
+#con este codigo la variable toma valor de 1 si la propiedad menciona garaje o parqueadero en sus descripciones y 0  caso contrario 
+
+# Crear una nueva columna 'tiene_garaje' en dataset
+dataset$tiene_garaje <- ifelse(grepl("garaje|parqueadero", dataset$tex_descripcion, ignore.case = TRUE) |
+                                 grepl("garaje|parqueadero", dataset$tex_titulo, ignore.case = TRUE), 1, 0)
+
+# Crear una nueva columna 'tiene_parqueadero' en dataset
+dataset$tiene_parqueadero <- ifelse(grepl("parqueadero", dataset$tex_descripcion, ignore.case = TRUE) |
+                                      grepl("parqueadero", dataset$tex_titulo, ignore.case = TRUE), 1, 0)
+
+# Crear una nueva columna 'tiene_garaje' en dataset_kaggle
+dataset_kaggle$tiene_garaje <- ifelse(grepl("garaje|parqueadero", dataset_kaggle$tex_descripcion, ignore.case = TRUE) |
+                                        grepl("garaje|parqueadero", dataset_kaggle$tex_titulo, ignore.case = TRUE), 1, 0)
+
+# Crear una nueva columna 'tiene_parqueadero' en dataset_kaggle
+dataset_kaggle$tiene_parqueadero <- ifelse(grepl("parqueadero", dataset_kaggle$tex_descripcion, ignore.case = TRUE) |
+                                             grepl("parqueadero", dataset_kaggle$tex_titulo, ignore.case = TRUE), 1, 0)
+
+# Verificar la distribución en dataset
+table(dataset$tiene_garaje)
+table(dataset$tiene_parqueadero)
+
+# Verificar la distribución en dataset_kaggle
+table(dataset_kaggle$tiene_garaje)
+table(dataset_kaggle$tiene_parqueadero)
+
+# Estadísticas descriptivas en dataset
+summary(dataset$tiene_garaje)
+summary(dataset$tiene_parqueadero)
+
+# Estadísticas descriptivas en dataset_kaggle
+summary(dataset_kaggle$tiene_garaje)
+summary(dataset_kaggle$tiene_parqueadero)
+
+# Gráfico de barras para la presencia de garaje en dataset
+barplot(table(dataset$tiene_garaje), main = "Presencia de Garaje en dataset", xlab = "Tiene Garaje", ylab = "Cantidad de Propiedades")
+
+# Gráfico de barras para la presencia de parqueadero en dataset
+barplot(table(dataset$tiene_parqueadero), main = "Presencia de Parqueadero en dataset", xlab = "Tiene Parqueadero", ylab = "Cantidad de Propiedades")
+
+# Gráfico de barras para la presencia de garaje en dataset
+barplot(table(dataset_kaggle$tiene_garaje), main = "Presencia de Garaje en dataset", xlab = "Tiene Garaje", ylab = "Cantidad de Propiedades")
+
+# Gráfico de barras para la presencia de parqueadero en dataset
+barplot(table(dataset_kaggle$tiene_parqueadero), main = "Presencia de Parqueadero en dataset", xlab = "Tiene Parqueadero", ylab = "Cantidad de Propiedades")
+
+
+
+#PISOS 
+
+# Crear la columna piso_info utilizando expresiones regulares
+library(stringr)
+dataset <- dataset %>%
+  mutate(piso_info = str_extract(tex_descripcion, "(\\w+|\\d+) piso (\\w+|\\d+)"))
+
+# Mapear números escritos a números numéricos
 numeros_escritos <- c("uno|primero|primer", "dos|segundo|segund", "tres|tercero|tercer", "cuatro|cuarto", "cinco|quinto", "seis|sexto", "siete|septimo", "ocho|octavo", "nueve|noveno", "diez|decimo|dei")
 numeros_numericos <- as.character(1:10)
 
-combined_data <- combined_data %>%
-  mutate(piso_info = str_replace_all(piso_info, setNames(numeros_numericos, numeros_escritos)))
-
-combined_data <- combined_data %>%
+dataset <- dataset %>%
+  mutate(piso_info = str_replace_all(piso_info, setNames(numeros_numericos, numeros_escritos))
+         
+# Crear la columna piso_numerico
+  dataset <- dataset %>%
   mutate(piso_numerico = as.integer(str_extract(piso_info, "\\d+")))
-
-combined_data <- combined_data %>%
-  mutate(piso_numerico = ifelse(piso_numerico > 20, NA, piso_numerico))
-
+         
+# Restringir a un máximo de 10 pisos
+  dataset <- dataset %>%
+  mutate(piso_numerico = ifelse(piso_numerico > 10, 10, piso_numerico))
+ 
+  # Crear la columna piso_info utilizando expresiones regulares
+  dataset_kaggle <- dataset_kaggle %>%
+    mutate(piso_info = str_extract(tex_descripcion, "(\\w+|\\d+) piso (\\w+|\\d+)"))
+  
+  # Mapear números escritos a números numéricos
+  numeros_escritos <- c("uno|primero|primer", "dos|segundo|segund", "tres|tercero|tercer", "cuatro|cuarto", "cinco|quinto", "seis|sexto", "siete|septimo", "ocho|octavo", "nueve|noveno", "diez|decimo|dei")
+  numeros_numericos <- as.character(1:10)
+  
+  dataset_kaggle <- dataset_kaggle %>%
+    mutate(piso_info = str_replace_all(piso_info, setNames(numeros_numericos, numeros_escritos))) 
+  
+           
+  # Crear la columna piso_numerico
+    dataset_kaggle <- dataset_kaggle %>%
+    mutate(piso_numerico = as.integer(str_extract(piso_info, "\\d+")))
+           
+  # Restringir a un máximo de 10 pisos
+    dataset_kaggle <- dataset_kaggle %>%
+    mutate(piso_numerico = ifelse(piso_numerico > 10, 10, piso_numerico))
+           
+  
 # Imputación de valores faltantes en la variable 'piso_numerico'
-# Este codigo calcula la de frecuencia de los valores en la variable 'piso_numerico' dentro de cada grupo de 'property_type_2', luego ordena la tabla en orden descendente y selecciona el primer valor, que corresponde a la moda.
-combined_data <- combined_data %>%
-  group_by(property_type_2) %>%
-  mutate(piso_numerico = ifelse(is.na(piso_numerico), as.integer(names(sort(table(piso_numerico), decreasing = TRUE)[1])), piso_numerico)) %>%
-  ungroup()
+#agrupacion de datos y calculo de moda
 
-# 2.3| Limpieza con imputación --------------------------------------------
-
-
+    dataset <- dataset %>%
+      group_by(cat_tipo) %>%
+      mutate(piso_numerico = ifelse(is.na(piso_numerico), as.integer(names(sort(table(piso_numerico), decreasing = TRUE)[1])), piso_numerico)) %>%
+      ungroup()
+    
+    dataset_kaggle <- dataset_kaggle %>%
+      group_by(cat_tipo) %>%
+      mutate(piso_numerico = ifelse(is.na(piso_numerico), as.integer(names(sort(table(piso_numerico), decreasing = TRUE)[1])), piso_numerico)) %>%
+      ungroup()
+    
+    # Crear un histograma de la variable 'piso_numerico'
+    hist(dataset$piso_numerico, main = "Distribución de Pisos", xlab = "Número de Pisos")
+    
+    # Crear un gráfico de barras de la variable 'cat_tipo'
+    barplot(table(dataset$cat_tipo), main = "Distribución de Tipos de Propiedad", xlab = "Tipo de Propiedad", ylab = "Frecuencia")
+    
+    # Verificación de valores fuera de un rango razonable
+    outliers <- which(dataset$piso_numerico < 1 | dataset$piso_numerico > 10)
+    if (length(outliers) > 0) {
+      cat("Valores fuera de rango en 'piso_numerico' en filas:", paste(outliers, collapse = ", "))
+    }
+    
+    # Verificar si hay valores atípicos
+    summary(dataset$piso_numerico)  # Muestra estadísticas descriptivas
+    boxplot(dataset$piso_numerico)  # Crea un gráfico de caja
+    
+    # Calcular la media de 'piso_numerico' por tipo de propiedad
+    mean_by_type <- tapply(dataset$piso_numerico, dataset$cat_tipo, mean)
+    print(mean_by_type)
+    
+    # análisis adicional las categorías
+    # comparo la distribución de 'piso_numerico' entre casas y apartamentos
+    t.test(dataset$piso_numerico[dataset$cat_tipo == "casa"], dataset$piso_numerico[dataset$cat_tipo == "apartamento"])
+    
 
 # 3| Estadística descriptiva ----------------------------------------------
 # Si bien los meses o años son variables numéricas, en realidad son categóricas
