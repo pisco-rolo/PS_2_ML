@@ -310,7 +310,37 @@ dataset <- dataset %>%
     # comparo la distribución de 'piso_numerico' entre casas y apartamentos
     t.test(dataset$piso_numerico[dataset$cat_tipo == "casa"], dataset$piso_numerico[dataset$cat_tipo == "apartamento"])
     
-
+    # Crear un histograma de la variable 'piso_numerico'
+    hist(dataset$piso_numerico, main = "Distribución de Pisos", xlab = "Número de Pisos")
+    
+    # Crear un gráfico de barras de la variable 'cat_tipo'
+    barplot(table(dataset$cat_tipo), main = "Distribución de Tipos de Propiedad", xlab = "Tipo de Propiedad", ylab = "Frecuencia")
+    
+    # Verificación de valores fuera de un rango razonable
+    outliers <- which(dataset$piso_numerico < 1 | dataset$piso_numerico > 10)
+    if (length(outliers) > 0) {
+      cat("Valores fuera de rango en 'piso_numerico' en filas:", paste(outliers, collapse = ", "))
+    }
+    
+    # Verificar si hay valores atípicos
+    summary(dataset_kaggle$piso_numerico)  # Muestra estadísticas descriptivas
+    boxplot(dataset_kaggle$piso_numerico)  # Crea un gráfico de caja
+    
+    # Calcular la media de 'piso_numerico' por tipo de propiedad
+    mean_by_type <- tapply(dataset_kaggle$piso_numerico, dataset_kaggle$cat_tipo, mean)
+    print(mean_by_type)
+    
+    # análisis adicional las categorías
+    # comparo la distribución de 'piso_numerico' entre casas y apartamentos
+    t.test(dataset_kaggle$piso_numerico[dataset_kaggle$cat_tipo == "casa"], dataset_kaggle$piso_numerico[dataset_kaggle$cat_tipo == "apartamento"])
+    
+    
+    
+    
+    
+    
+    
+    
 # 3| Estadística descriptiva ----------------------------------------------
 # Si bien los meses o años son variables numéricas, en realidad son categóricas
 # para el análisis estadístico.
