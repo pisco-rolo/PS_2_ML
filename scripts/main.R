@@ -40,6 +40,7 @@ setwd(directorioPrincipal)
 # incluye descargar, nuevamente, la base de datos desde la página de Ignacio.
 # Dado que el proceso es demorado se recomienda definir el parámetro en FALSE.
 primeraVez <- FALSE
+radio      <- 1500
 source(paste0(directorioCodigo, '01_data_cleaning.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '02_data_maps.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '03_data_regex.R'), encoding = 'UTF-8')
