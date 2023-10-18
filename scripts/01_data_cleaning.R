@@ -1,7 +1,7 @@
 # 1| Importar -------------------------------------------------------------
 # Importamos la base de datos de entrenamiento y de evaluación.
 dataset <- read.csv(file = paste0(directorioDatos, 'train.csv'))
-dataset_kaggle <- read.csv(file = paste0(directorioDatos, 'test.csv'))
+dataset_kaggle <- read.csv(file = paste0(directorioDatos,'test.csv'))
  
 # Definimos los nombres de las columnas tal y como trabajaremos en el futuro.
 nombres_variables   <- c('id_hogar', 'id_ciudad', 'num_precio', 'cat_mes', 
@@ -46,15 +46,131 @@ print(xtable(x = tib_datos_faltantes, type = "latex",
 # Las columnas surface_total y  'surface_covered' se refieren a las características de una propiedad inmobiliaria, como un apartamento o una casa. 
 # Estas columnas pueden representar el área total de la propiedad y el área cubierta de la propiedad, respectivamente.
 
+#############################################################################################
+#############################################################################################
+#############################################################################################
+combined_data <- dataset
+#----------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------
+# Verificación Casa - Apartamento 
+combined_data <- combined_data %>% mutate(tipo_prop = str_extract(tex_titulo,"([Aa]partamentos?|apto|ap|duplex|penthouse|apartaestudio|ap[a-z]estudio|[Cc]asas?)" ))
+
+combined_data <- combined_data %>% mutate(tipo_prop_desc = str_extract(tex_descripcion,"([Aa]partamentos?|apto|duplex|penthouse|apartaestudio|aparta estudio|ap[a-z+]estudio|[Cc]asas?)" ))
+
+combined_data <- combined_data %>% mutate(new_type = ifelse(is.na(tipo_prop),tipo_prop_desc, tipo_prop))
+
+combined_data <- combined_data %>% mutate(d_type = case_when( new_type == "casa" ~ 1 ,
+                                                              new_type == "Casa" ~ 1 ,
+                                                              new_type == "casas" ~ 1 ))
+
+combined_data <- combined_data %>% mutate(d_type = ifelse(is.na(d_type),0, 1))
+
+table(combined_data$cat_tipo)
+table(combined_data$d_type)
+
+table(combined_data$cat_ano)
+
+#----------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------
 # TODO. Extraer los metros mediante expresiones regulares, y los datos faltantes sí llenarlos con
 # la media en lugar de cero.  
 combined_data <- combined_data %>%
   mutate(surface_total = ifelse(is.na(surface_total), 0, surface_total),
          surface_covered = ifelse(is.na(surface_covered), 0, surface_covered))
 
-# TODO. Rellenar número de habitaciones y número de baños.
+#---------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------
+# Número de metros cuadrados
+combined_data <- combined_data %>% 
+  mutate(mt2_v2 = str_extract(tex_descripcion, "\\b\\d+\\s*(?:m2|mts2|mts
+                              |m²|m\\^2|metros cuadrados|metros|mtrs|mtrs2|mts2|mt|mt2|mt23|m2?|metro cuadrados)\\b" ))
 
+combined_data <- combined_data %>%
+  mutate(mt2_v2_n = as.integer(str_extract(mt2_v2, "\\d+")))
+
+summary(combined_data$mt2_v2_n)
+
+#------------------------------------------------------------------------
+# PENDIENTE: limites e imputar medianas a los metros cuadrados por localidad, estrato, casa o apartamento 
+
+#### ponemos límites a los metros cuadrados según distribución por casa y apartamento
+tapply(combined_data$mt2_v2_n, combined_data$cat_tipo, summary)
+tapply(combined_data$num_area_cubierta, combined_data$cat_tipo, summary)
+
+
+# límites a los apartamentos 
+combined_data <- combined_data %>% 
+  mutate(mt2_v2_n = ifelse(mt2_v2_n > 600 & cat_tipo=="apartamento" , NA , mt2_v2_n  ))
+
+
+# Reemplazo NA's con valor mediana
+combined_data <- combined_data %>%
+  mutate(mt2_v2_n = ifelse(cat_tipo=="apartamento",replace_na(mt2_v2_n, 104), mt2_v2_n ) )
+
+
+#Subdivisiones, de casas, apartamentos x localidad, 
+
+
+
+# límites a las casas
+combined_data <- combined_data %>% 
+  mutate(mt2_v2_n = ifelse(mt2_v2_n > 1200 & cat_tipo=="casa" , NA , mt2_v2_n  ))
+
+
+
+
+summary(combined_data$mt2_v2_n)
+summary(combined_data$num_area_total)
+
+
+########################################################
+# TODO. Rellenar número de habitaciones // # alcobas // # cuartos
+
+combined_data <- combined_data %>%
+  mutate(rooms = str_extract(tex_descripcion, "(\\w+|\\d+) (alcoba(s)?|habitacion(es)? |cuarto(s)?) (\\w+|\\d+)"))
+#--------------------------------------------------------------------------------------------------------
+#-------modify
+sinonimos <- c("habitacion", "habitaciones", "alcoba", "alcobas", "cuarto", "cuartos")
+
+patron2 <- paste0("(\\w+|\\d+) (", paste(sinonimos, collapse = "|"), ")", "(\\w+|\\d+)")
+
+#primera_habitacion <- str_extract(texto, patron)
+combined_data <- combined_data %>%
+  mutate(rooms = str_extract(tex_descripcion, patron2))
+
+#-------------
+
+numeros_escritos <- c("uno|primero|primer", "dos|segundo|segund", "tres|tercero|tercer", "cuatro|cuarto", "cinco|quinto", "seis|sexto", "siete|septimo", "ocho|octavo", "nueve|noveno", "diez|decimo|dei")
+numeros_numericos <- as.character(1:10)
+
+combined_data <- combined_data %>%
+  mutate(rooms = str_replace_all(rooms, setNames(numeros_numericos,numeros_escritos)))
+
+combined_data <- combined_data %>%
+  mutate(num_rooms = as.integer(str_extract(rooms, "\\d+")))
+
+summary(combined_data$num_rooms)
+
+#############################################################################################
+#############################################################################################
+#############################################################################################
+#############################################################################################
+#############################################################################################
+####################
+#número de baños
+##################################################################
 # TODO. Validar que el área total sea mayor o igual a la cubierta.
+
+combined_data <- combined_data %>% 
+  mutate(d_area_true = ifelse(num_area_total > num_area_cubierta, 1, 0) )
+
+table(combined_data$d_area_true)
+summary(combined_data$num_area_total)
+summary(combined_data$num_area_cubierta)
+### sospech de que ambas variables con incoherentes 
+
+
+
 
 # TODO. Verificar que el tipo de la propiedad sí sea casa o apartamento y sobreescribir la variable.
 combined_data <- combined_data %>%
@@ -73,7 +189,7 @@ combined_data <- combined_data %>%
 #Finalmente, se crea una nueva columna llamada "piso_numerico" que contiene el número de piso, y se descartan los valores que son mayores de 20(puede ser cuestionable),posiblemente porque son considerados atípicos o incorrectos
 
 combined_data <- combined_data %>%
-  mutate(piso_info = str_extract(description, "(\\w+|\\d+) piso (\\w+|\\d+)"))
+  mutate(piso_info = str_extract(tex_descripcion, "(\\w+|\\d+) piso (\\w+|\\d+)"))
 
 numeros_escritos <- c("uno|primero|primer", "dos|segundo|segund", "tres|tercero|tercer", "cuatro|cuarto", "cinco|quinto", "seis|sexto", "siete|septimo", "ocho|octavo", "nueve|noveno", "diez|decimo|dei")
 numeros_numericos <- as.character(1:10)
@@ -89,12 +205,33 @@ combined_data <- combined_data %>%
 
 # Imputación de valores faltantes en la variable 'piso_numerico'
 # Este codigo calcula la de frecuencia de los valores en la variable 'piso_numerico' dentro de cada grupo de 'property_type_2', luego ordena la tabla en orden descendente y selecciona el primer valor, que corresponde a la moda.
-combined_data <- combined_data %>%
-  group_by(property_type_2) %>%
+combined_data <- combined_data %>%  #  group_by(property_type_2) %>%
   mutate(piso_numerico = ifelse(is.na(piso_numerico), as.integer(names(sort(table(piso_numerico), decreasing = TRUE)[1])), piso_numerico)) %>%
   ungroup()
 
 # 2.3| Limpieza con imputación --------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
