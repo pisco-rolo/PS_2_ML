@@ -3,11 +3,104 @@
 dataset <- read.csv(file = paste0(directorioDatos, 'train.csv'))
 dataset_kaggle <- read.csv(file = paste0(directorioDatos,'test.csv'))
 
-#Importo la información de las estaciones de transmilenio en formato json.
-dataset_tm <- st_read(paste0(directorioDatos,'estaciones_trocales_trm.geojson'))
-#Importo la información de ciclovías en formato shapefile.
+# Importamos la información de las estaciones de transmilenio en formato json.
+# Nótese que las observaciones son puntos. 
+dataset_tm <- st_read(paste0(directorioDatos,'estaciones_trocales_trm.geojson')) |>
+  select(c('id_estacion' = 'numero_estacion', 
+           'nom_estacion' = 'nombre_estacion',
+           'lat_estacion' = 'latitud_estacion',
+           'lon_estacion' = 'longitud_estacion',
+           'geometry'))
+
+# Así mismo, importamos el número de validaciones por estación y por hora,
+# de forma tal que podamos determinar cuáles son las estaciones donde se 
+# concentran las oportunidades laborales y en dónde se concentran las
+# zonas residenciales.
+# Nota. La base de datos es muy pesada, por lo que el análisis se hace una
+# única vez y se exporta los resultados.
+
+if (primeraVez == TRUE) {
+  # Definimos las fechas a tomar. En particular, nos basamos en el 25 de
+  # septiembre, sospechando que el lunes es el día con más movimiento en 
+  # la ciudad. Así mismo, no realizamos el análisis el fin de semana dado que 
+  # nos interesa las zonas con oportunidades laborales.
+  dataset_validacion <- read.csv(file = paste0(
+    directorioDatos, 'validaciones/validacionTroncal', '20230925', '.csv')
+  )
+  
+  # Las variables de interés son la hora de validación y la estación donde
+  # se registró el pago.
+  pattern <- '^(\\d{4}-\\d{2}-\\d{2}) (\\d{2})(:\\d{2}:\\d{2})'
+  dataset_validacion <- dataset_validacion |> 
+    select(c(tex_estacion = 'Estacion_Parada', 
+             tex_fecha = 'Fecha_Transaccion')) |> 
+    mutate(id_estacion  = str_extract(string = tex_estacion, 
+                                      pattern = '(\\(\\d+\\)) (.*)', group = 1),
+           nom_estacion = str_extract(string = tex_estacion, 
+                                      pattern = '(\\(\\d+\\)) (.*)', group = 2),
+           date_fecha   = str_extract(string = tex_fecha, 
+                                      pattern = pattern, group = 1),
+           date_hora    = str_extract(string = tex_fecha, 
+                                      pattern = pattern, group = 2)) |> 
+    mutate(id_estacion = gsub(pattern = '[()]', replacement = '', x = id_estacion),
+           date_fecha  = ymd(date_fecha),
+           date_hora   = as.numeric(date_hora)) |> 
+    select(c('id_estacion', 'nom_estacion', 'date_fecha', 'date_hora'))
+  
+  # Dado que lo que interesa es el número de validaciones por hora, vamos
+  # a colapsar la base de datos a nivel de estación y hora de validación.
+  # En particular, miramos qué proporción de las validaciones se realizó
+  # en determinada hora del día.
+  dataset_validacion <- dataset_validacion |> 
+    filter(date_fecha %in% ymd('20230925')) |> 
+    group_by(id_estacion, nom_estacion, date_hora) |> 
+    summarise(num_validaciones = n()) |> 
+    ungroup() |> 
+    group_by(nom_estacion) |> 
+    mutate(prop_validaciones = num_validaciones/sum(num_validaciones)) |> 
+    ungroup()
+  
+  # La hora pico de la mañana comprende desde las 4a.m. hasta las 8:59a.m.
+  # Por el contrario, la tarde comprende desde las 4p.m. hasta las 7:59a.m.
+  # Así, contamos la proporción de validaciones en la mañana, en hora valle,
+  # y en la tarde.
+  dataset_validacion <- dataset_validacion |> 
+    mutate(cat_hora = case_when(date_hora %in% 4:8 ~ 'Temprano',
+                                date_hora %in% 16:19 ~ 'Tarde',
+                                TRUE ~ 'Valle')) |> 
+    group_by(id_estacion, nom_estacion, cat_hora) |> 
+    summarise(prop_validaciones = sum(prop_validaciones)) |> 
+    ungroup()
+  
+  # Finalmente, hacemos una comparación. Si una estación tiene la mayoría de
+  # sus validaciones en hora valle, no la vamos a considerar ni residencial
+  # ni laboral.
+  dataset_validacion <- dataset_validacion |> 
+    pivot_wider(names_from = 'cat_hora', values_from = 'prop_validaciones') |> 
+    filter((Temprano > Valle) | (Tarde > Valle)) |> 
+    mutate(bin_zonaResidencial = as.numeric(Tarde < Temprano),
+           bin_zonaLaboral = as.numeric(Temprano < Tarde))
+  
+  # Adicionamos la posición espacial con base en las estaciones troncales
+  # importadas previamente.
+  dataset_validacion <- dataset_tm |> 
+    left_join(y = dataset_validacion |> 
+                select(-c('nom_estacion', 'Tarde', 'Temprano', 'Valle')), 
+              by = 'id_estacion') |> 
+    replace_na(list(bin_zonaResidencial = 0, bin_zonaLaboral = 0))
+  
+  saveRDS(object = dataset_validacion, 
+          file = paste0(directorioDatos, 'tipo_de_barrio.rds'))
+  
+} else {
+  dataset_validacion <- readRDS(file = paste0(directorioDatos, 'tipo_de_barrio.rds'))
+}
+
+# Importamos la información de ciclovías en formato shapefile. Nótese que
+# las observaciones son líneas.
 dataset_ciclovia <- st_read(paste0(directorioDatos,'ciclovia/Ciclovia.shp'))
-#Importo mapa con localidades.
+
+# Importamos el mapa de Bogotá con la división de localidades.
 dataset_localidades <- st_read(paste0(directorioDatos,'upla/UPla.shp'))
 
 # Definimos los nombres de las columnas tal y como trabajaremos en el futuro.
