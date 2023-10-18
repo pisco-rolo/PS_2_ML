@@ -101,7 +101,12 @@ if (primeraVez == TRUE) {
 dataset_ciclovia <- st_read(paste0(directorioDatos,'ciclovia/Ciclovia.shp'))
 
 # Importamos el mapa de Bogotá con la división de localidades.
-dataset_localidades <- st_read(paste0(directorioDatos,'upla/UPla.shp'))
+# dataset_localidades <- st_read(paste0(directorioDatos,'upla/UPla.shp'))
+dataset_localidades <- st_read(paste0(directorioDatos,'upla/Loca.shp'))
+dataset_localidades <- dataset_localidades |> 
+  select(c('id_localidad' = 'LocCodigo',
+           'nom_localidad' = 'LocNombre',
+           'geometry'))
 
 # Definimos los nombres de las columnas tal y como trabajaremos en el futuro.
 nombres_variables   <- c('id_hogar', 'id_ciudad', 'num_precio', 'cat_mes', 
