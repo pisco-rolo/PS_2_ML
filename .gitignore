@@ -2,6 +2,10 @@
 # - De R.
 *.Rhistory
 .Rproj.user
+*.DS_Store
+
+# - De Excel.
+validacionTroncal20230925.csv
 
 # - De LaTeX.
 *.aux
