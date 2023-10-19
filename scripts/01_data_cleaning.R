@@ -99,9 +99,13 @@ if (primeraVez == TRUE) {
 # Importamos la información de ciclovías en formato shapefile. Nótese que
 # las observaciones son líneas.
 dataset_ciclovia <- st_read(paste0(directorioDatos,'ciclovia/Ciclovia.shp'))
+dataset_ciclovia <- st_transform(dataset_ciclovia, crs = 4326)
 
 # Importamos el mapa de Bogotá con la división de localidades.
-# dataset_localidades <- st_read(paste0(directorioDatos,'upla/UPla.shp'))
+dataset_bogota <- st_read(paste0(directorioDatos,'upla/UPla.shp')) |> 
+  filter(grepl("RIO", UPlNombre) == FALSE)
+dataset_bogota <- st_transform(dataset_bogota, crs = 4326)
+
 dataset_localidades <- st_read(paste0(directorioDatos,'upla/Loca.shp'))
 dataset_localidades <- dataset_localidades |> 
   select(c('id_localidad' = 'LocCodigo',
@@ -292,11 +296,3 @@ nombreArchivo <- 'distribucion_precios.png'
 ggsave(filename = paste0(directorioResultados, nombreArchivo), plot = graficaExportar,
        width = 6 * widthExp, height = 4 * heightExp * widthExp, scale = scale_factor)
 options(scipen=999)
-
-# 4.2| Mapas --------------------------------------------------------------
-leaflet() %>%
-  addTiles() %>%
-  addCircles(lng = dataset$num_longitud, 
-             lat = dataset$num_latitud,
-             col = '#F4A261')
-             
