@@ -1,19 +1,19 @@
 # A| Definición de la función ---------------------------------------------
 crear_variables_geograficas <- function(
-      dataset., 
-      dataset_bogota. = dataset_bogota,
-      dataset_validacion. = dataset_validacion, 
-      dataset_tm. = dataset_tm,
-      dataset_ciclovia. = dataset_ciclovia, 
-      radio. = radio, 
+      .dataset, 
+      .dataset_bogota = dataset_bogota,
+      .dataset_validacion = dataset_validacion, 
+      .dataset_tm = dataset_tm,
+      .dataset_ciclovia = dataset_ciclovia, 
+      .radio = radio, 
       nombreArchivo = 'datos_geograficos.rds',
       nombreGrafica = 'mapa_variables.png'
 ) {
   # 1| Extraer información --------------------------------------------------
   # Convertimos la base de datos original en un 'sf', de forma tal que sea más
   # sencillo manipular las variables de longitud y latitud.
-  dataset. <- st_as_sf(x = dataset., coords = c('num_longitud', 'num_latitud'))
-  st_crs(dataset.) <- 4326
+  .dataset <- st_as_sf(x = .dataset, coords = c('num_longitud', 'num_latitud'))
+  st_crs(.dataset) <- 4326
   
   # 1.1| Universidades ------------------------------------------------------
   # Estimamos la distancia (en metros) de la Universidad más cercana.
@@ -28,12 +28,12 @@ crear_variables_geograficas <- function(
   centroides <- gCentroid(as(geom_universidades$geometry, "Spatial"), byid = TRUE)
   centroides <- st_as_sf(centroides, coords = c('x', 'y'))
   
-  matrix_distance <- st_distance(x = dataset., y = centroides)
+  matrix_distance <- st_distance(x = .dataset, y = centroides)
   vector_distance <- apply(X = matrix_distance, MARGIN = 1, FUN = min)
   
   # TODO. ¿En qué unidades está medida la distancia? Parece estar medido en 
   # metros.
-  dataset. <- dataset. |> mutate(num_distancia_universidades = vector_distance)
+  .dataset <- .dataset |> mutate(num_distancia_universidades = vector_distance)
   
   # 1.2| Zonas sociales -----------------------------------------------------
   # Conteo del número de restaurantes, bares, cafés, y pubs en un área.
@@ -55,13 +55,13 @@ crear_variables_geograficas <- function(
   centroides <- gCentroid(as(geom_zonasSociales$geometry, "Spatial"), byid = TRUE)
   centroides <- st_as_sf(centroides, coords = c('x', 'y'))
   
-  matrix_distance <- st_distance(x = dataset., y = centroides)
+  matrix_distance <- st_distance(x = .dataset, y = centroides)
   
   # Contamos los puntos de zonas sociales que se encuentran en un radio 
   # determinado alrededor de las casas.
   # TODO. Validar la predicción con diferentes rangos a la redonda.
   data_count <- rowSums(matrix_distance <= radio.)
-  dataset. <- dataset. |> mutate(num_numero_ocio = data_count)
+  .dataset <- .dataset |> mutate(num_numero_ocio = data_count)
   
   # 1.3| Distancia de calles principales ------------------------------------
   # TODO. Incluir la forma cuadrática por el costo de vivir demasiado cerca de la 
@@ -75,27 +75,27 @@ crear_variables_geograficas <- function(
   geom_calles <- sf_calles$osm_lines |>
     select(c('osm_id', 'name'))
   
-  matrix_distance <- st_distance(x = dataset., y = geom_calles)
+  matrix_distance <- st_distance(x = .dataset, y = geom_calles)
   vector_distance <- apply(X = matrix_distance, MARGIN = 1, FUN = min)
   
-  dataset. <- dataset. |> mutate(num_distancia_calles = vector_distance)
+  .dataset <- .dataset |> mutate(num_distancia_calles = vector_distance)
   
   # 1.4| Transmilenio -------------------------------------------------------
   # - Segmentar la ciudad en zonas residenciales y zonas empresariales.
-  matrix_close <- st_nearest_feature(dataset., dataset_validacion.) 
+  matrix_close <- st_nearest_feature(.dataset, .dataset_validacion) 
   vector_close <- dataset_validacion.[matrix_close, ]
   vector_close <- st_drop_geometry(vector_close)
   
-  dataset. <- dataset. |> bind_cols(vector_close)
+  .dataset <- .dataset |> bind_cols(vector_close)
   
   # - Distancia a la estación de TM más cercana.
-  puntos_tm <- dataset_tm.$geometry # Para la gráfica final.
+  puntos_tm <- .dataset_tm$geometry # Para la gráfica final.
   puntos_tm <- st_as_sf(x = puntos_tm, crs = 4326)
   
-  matrix_distance <- st_distance(x = dataset., y = dataset_tm.)
+  matrix_distance <- st_distance(x = .dataset, y = .dataset_tm)
   vector_distance <- apply(X = matrix_distance, MARGIN = 1, FUN = min)
   
-  dataset. <- dataset. |> mutate(num_distancia_tm = vector_distance)
+  .dataset <- .dataset |> mutate(num_distancia_tm = vector_distance)
   
   # 1.5| Centros comerciales ------------------------------------------------
   # Distancia del centro comercial más cercano.
@@ -113,10 +113,10 @@ crear_variables_geograficas <- function(
   centroides <- st_as_sf(centroides, coords = c('x', 'y'))
   centroides_mall <- centroides # Para la gráfica final.
   
-  matrix_distance <- st_distance(x = dataset., y = centroides)
+  matrix_distance <- st_distance(x = .dataset, y = centroides)
   vector_distance <- apply(X = matrix_distance, MARGIN = 1, FUN = min)
   
-  dataset. <- dataset. |> mutate(num_distancia_mall = vector_distance)
+  .dataset <- .dataset |> mutate(num_distancia_mall = vector_distance)
   
   # 1.6| Parques ------------------------------------------------------------
   # Distancia del parque más cercano.
@@ -128,17 +128,17 @@ crear_variables_geograficas <- function(
   centroides <- gCentroid(as(geom_parques$geometry, "Spatial"), byid = TRUE)
   centroides <- st_as_sf(centroides, coords = c('x', 'y'))
   
-  matrix_distance <- st_distance(x = dataset., y = centroides)
+  matrix_distance <- st_distance(x = .dataset, y = centroides)
   vector_distance <- apply(X = matrix_distance, MARGIN = 1, FUN = min)
   
-  dataset. <- dataset. |> mutate(num_distancia_parque = vector_distance)
+  .dataset <- .dataset |> mutate(num_distancia_parque = vector_distance)
   
   # Área del parque más cercano.
   posicion <- apply(X = matrix_distance, MARGIN = 1, FUN = function(x) {
     which(min(x) == x)
   })
   areas <- st_area(geom_parques)
-  dataset. <- dataset. |> mutate(num_area_parque = as.numeric(areas[posicion]))
+  .dataset <- .dataset |> mutate(num_area_parque = as.numeric(areas[posicion]))
   
   # 1.7| CAI ----------------------------------------------------------------
   data_osm <-  opq(bbox = getbb('Bogotá, Distrito Capital')) |> 
@@ -147,20 +147,20 @@ crear_variables_geograficas <- function(
   sf_cai <- osmdata_sf(data_osm)
   geom_cai <- sf_cai$osm_point
   
-  matrix_distance <- st_distance(x = dataset., y = geom_cai)
+  matrix_distance <- st_distance(x = .dataset, y = geom_cai)
   vector_distance <- apply(X = matrix_distance, MARGIN = 1, FUN = min)
   
-  dataset. <- dataset. |> mutate(num_distancia_cai = vector_distance)
+  .dataset <- .dataset |> mutate(num_distancia_cai = vector_distance)
   
   # 1.8| Ciclovía -----------------------------------------------------------
   # Distancia de la ciclovía más cercana.
-  puntos_ciclovia <- dataset_ciclovia.$geometry # Para la gráfica final.
+  puntos_ciclovia <- .dataset_ciclovia$geometry # Para la gráfica final.
   puntos_ciclovia <- st_transform(puntos_ciclovia, 4326)
   
-  matrix_distance <- st_distance(x = dataset., y = dataset_ciclovia.)
+  matrix_distance <- st_distance(x = .dataset, y = .dataset_ciclovia)
   vector_distance <- apply(X = matrix_distance, MARGIN = 1, FUN = min)
   
-  dataset. <- dataset. |> mutate(num_distancia_ciclovia = vector_distance)
+  .dataset <- .dataset |> mutate(num_distancia_ciclovia = vector_distance)
   
   # 1.9| Parqueaderos -------------------------------------------------------
   # Conteo del número de parqueaderos en un área.
@@ -179,13 +179,13 @@ crear_variables_geograficas <- function(
   centroides <- gCentroid(as(geom_zonasSociales$geometry, "Spatial"), byid = TRUE)
   centroides <- st_as_sf(centroides, coords = c('x', 'y'))
   
-  matrix_distance <- st_distance(x = dataset., y = centroides)
+  matrix_distance <- st_distance(x = .dataset, y = centroides)
   
   # Contamos los puntos de zonas sociales que se encuentran en un radio 
   # determinado alrededor de las casas.
   # TODO. Validar la predicción con diferentes rangos a la redonda.
   data_count <- rowSums(matrix_distance <= radio.)
-  dataset. <- dataset. |> mutate(num_numero_parqueaderos = data_count)
+  .dataset <- .dataset |> mutate(num_numero_parqueaderos = data_count)
   
   # 2| Visualización --------------------------------------------------------
   base_exp     = 1
@@ -194,7 +194,7 @@ crear_variables_geograficas <- function(
   scale_factor = base_exp/widthExp
   
   nuevaGrafica <- ggplot() +
-    geom_sf(data = dataset_bogota., size = .3, fill = NA) +
+    geom_sf(data = .dataset_bogota, size = .3, fill = NA) +
     geom_sf(data = centroides_mall, aes(shape = "Centros Comerciales")) + 
     geom_sf(data = puntos_ciclovia, aes(color = "Ciclovías")) +
     geom_sf(data = puntos_tm, aes(color = "TransMilenio")) +
@@ -213,22 +213,22 @@ crear_variables_geograficas <- function(
          width = 6 * widthExp, height = 4 * heightExp * widthExp , scale = scale_factor)
   
   # 3| Exportar -------------------------------------------------------------
-  saveRDS(object = dataset., 
+  saveRDS(object = .dataset, 
           file   = paste0(directorioDatos, nombreArchivo))
   
-  return(dataset.)
+  return(.dataset)
 }
 
 # B| Generación de los datos ----------------------------------------------
 if (primeraVez == TRUE) {
   dataset <- crear_variables_geograficas(
-    dataset.      = dataset, 
+    .dataset      = dataset, 
     nombreArchivo = 'datos_geograficos.rds',
     nombreGrafica = 'mapa_variables.png'
   )
   
   dataset_kaggle <- crear_variables_geograficas(
-    dataset.      = dataset_kaggle, 
+    .dataset      = dataset_kaggle, 
     nombreArchivo = 'datos_geograficos_evaluacion.rds',
     nombreGrafica = 'mapa_variables_evaluacion.png'
   )

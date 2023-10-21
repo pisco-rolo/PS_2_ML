@@ -118,14 +118,8 @@ nombres_variables   <- c('id_hogar', 'id_ciudad', 'num_precio', 'cat_mes',
                          'num_habitacion', 'num_dormitorio', 'num_bano',
                          'cat_tipo', 'cat_venta', 'num_latitud', 
                          'num_longitud', 'tex_titulo', 'tex_descripcion')
-colnames(train) <- nombres_variables
-colnames(test) <- nombres_variables
-
-# Variables como la ciudad o si se vendió la propiedad no nos son de interés
-# porque tienen un único valor y no aportan a la variabilidad de la predicción.
-library(dplyr)
-dataset <- train |> select(-c('id_ciudad', 'cat_venta'))
-dataset_kaggle <- test |> select(-c('id_ciudad', 'cat_venta'))
+colnames(dataset) <- nombres_variables
+colnames(dataset_kaggle) <- nombres_variables
 
 # 2| Limpieza -------------------------------------------------------------
 # 2.1| Conteo de valores faltantes ----------------------------------------
@@ -158,12 +152,14 @@ print(xtable(x = tib_datos_faltantes, type = "latex",
 # propiedad, respectivamente.
 
 # A| Validación de casa/apartamento ----------------------------------------
+# Nota. Nos quedamos con cat_tipo dado que solo hay una diferencia de 200
+# inmuebles.
 dataset <- limpiar_casa(.dataset = dataset)
 dataset_kaggle <- limpiar_casa(.dataset = dataset_kaggle)
 
 # Comparaciones.
 table(dataset$cat_tipo)
-table(dataset$d_type)
+table(dataset$bin_casa)
 table(dataset$cat_ano)
 
 # B| Validación metros cuadrados ------------------------------------------
@@ -187,6 +183,7 @@ dataset_kaggle <- censura_metros(.dataset = dataset_kaggle)
 summary(dataset$num_mt2)
 summary(dataset$num_area_total)
 
+# TODO. Validar que el área total sea mayor o igual a la cubierta.
 # dataset <- dataset |> 
 #   mutate(d_area_true = ifelse(num_area_total > num_area_cubierta, 1, 0) )
 # 
@@ -198,40 +195,21 @@ summary(dataset$num_area_total)
 # TODO.Imputar medianas.
 
 # C| Validación de alcobas ------------------------------------------------
+# TODO. Censurar observaciones anómalas.
 dataset <- limpiar_alcobas(.dataset = dataset)
 dataset_kaggle <- limpiar_alcobas(.dataset = dataset_kaggle)
 
-summary(combined_data$num_rooms)
+summary(dataset$num_rooms)
 
 # D| Validación piso ------------------------------------------------------
 dataset <- limpiar_piso(.dataset = dataset)
 dataset_kaggle <- limpiar_piso(.dataset = dataset_kaggle) 
 
+summary(dataset$num_piso)
+
 # E| Validación baños -----------------------------------------------------
-# TODO. Validar que el área total sea mayor o igual a la cubierta.
-
-dataset$num_baño <- as.numeric(gsub(".*?(\\d+\\.?\\d*).*", "\\1", dataset$num_bano))
-dataset_kaggle$num_baño <- as.numeric(gsub(".*?(\\d+\\.?\\d*).*", "\\1", dataset_kaggle$num_bano))
-
-# Calculo la media de num_bano en dataset excluyendo los valores nulos
-mean_num_bano <- mean(dataset$num_bano, na.rm = TRUE)
-# Llenar valores nulos con la media en num_bano en dataset_kaggle
-dataset$num_bano[is.na(dataset$num_bano)] <- mean_num_bano
-
-# PENDIENTE, imputar por localidad y estrato
-# Calculo la media de num_bano en dataset_kaggle excluyendo los valores nulos
-mean_num_bano_kaggle <- mean(dataset_kaggle$num_bano, na.rm = TRUE)
-# llenar valores nulos con la media en num_bano en dataset_kaggle
-dataset_kaggle$num_bano[is.na(dataset_kaggle$num_bano)] <- mean_num_bano_kaggle
-  
-# Verificar y corregir valores incorrectos en num_bano en dataset, no tiene sentido que el número de baños sea < 1.
-dataset$num_bano[dataset$num_bano < 1] <- 1
-dataset_kaggle$num_bano[dataset_kaggle$num_bano < 1] <- 1
-hist(dataset$num_bano, main = "Distribución de Número de Baños", xlab = "Número de Baños")
-#Cada intervalo muestra cuántas observaciones de la variable "Número de Baños" caen en ese rango específico.
-# Las barras más altas indican que hay más propiedades con un número de baños en ese rango
-# El histograma muestra que la mayoría de las propiedades en el conjunto de datos tienen un número de baños en el rango de 1 a 3 baños. Hay un número relativamente bajo de propiedades con más de 3 baños
-# me parecio interesante mirar esta relacion entre "numero de baños y precio"
+dataset <- limpiar_banos(.dataset = dataset)
+dataset_kaggle <- limpiar_banos(.dataset = dataset_kaggle)
 
 # F| Parqueadero ----------------------------------------------------------
 dataset <- dataset |>

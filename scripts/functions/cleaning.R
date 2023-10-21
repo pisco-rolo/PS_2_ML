@@ -1,21 +1,17 @@
 limpiar_casa <- function(.dataset) {
+  sinonimos <- c("casa", "casas", "chalet", "campestre")
   .dataset <- .dataset |> 
-    mutate(tipo_prop = str_extract(tex_titulo,"([Aa]partamentos?|apto|ap|duplex|penthouse
-                                   |apartaestudio|ap[a-z]estudio|[Cc]asas?|chalet|casa campestre|estudio|miniapartamento)")) |> 
-    mutate(tipo_prop_desc = str_extract(tex_descripcion,"([Aa]partamentos?|apto|duplex
-                                   |penthouse|apartaestudio|aparta estudio|ap[a-z+]estudio|[Cc]asas?|chalet|casa campestre|estudio|miniapartamento)" )) |> 
-    mutate(new_type = ifelse(is.na(tipo_prop),tipo_prop_desc, tipo_prop)) |> 
-    mutate(d_type = case_when( new_type == "casa" ~ 1,
-                               new_type == "Casa" ~ 1,
-                               new_type == "casas" ~ 1,
-                               new_type == "chalet" ~ 1,
-                               new_type == "casa campestre" ~ 1)) |> 
-    mutate(d_type = ifelse(is.na(d_type),0, 1))
-  
-  # TODO. Verificar que el tipo de la propiedad sí sea casa o apartamento y sobreescribir la variable.
-  .dataset <- .dataset |>
-    mutate(cat_tipo_2 = ifelse(grepl("casa", tex_descripcion), "casa", cat_tipo)) |> 
-    mutate(cat_tipo_2 = ifelse(grepl("apto|apartamento", tex_descripcion), "apartamento", cat_tipo_2)) 
+    mutate(tex_cat_tipo_titulo = str_extract(tex_titulo,"([Aa]partamento(s)?|apto|ap|duplex|penthouse|apartaestudio|ap[a-z]estudio|[Cc]asas?|chalet|casa campestre|estudio|miniapartamento)")) |> 
+    mutate(tex_cat_tipo_descripcion = str_extract(tex_descripcion,"([Aa]partamento(s)?|apto|ap|duplex|penthouse|apartaestudio|aparta estudio|ap[a-z+]estudio|[Cc]asas?|chalet|casa campestre|estudio|miniapartamento)" )) |> 
+    mutate(tex_cat_tipo = ifelse(is.na(tex_cat_tipo_titulo), tex_cat_tipo_descripcion, tex_cat_tipo_titulo)) |> 
+    mutate(bin_casa = case_when(tex_cat_tipo %in% sinonimos ~ 1,
+                                TRUE ~ 0)) |> 
+    # Implícitamente suponemos que, todo aquello que no sea una casa, es un
+    # apartamento. Podríamos revisar más a fondo, dejando las variables
+    # "tex_cat_tipo_titulo" y "tex_cat_tipo_descripcion", a ver cuáles
+    # son NA y revisar si la descripción efectivamente no contiene la palabra.
+    mutate(bin_casa = ifelse(is.na(bin_casa), 0, 1)) |> 
+    select(-c("tex_cat_tipo_titulo", "tex_cat_tipo_descripcion", "tex_cat_tipo"))
   
   return(.dataset)
 }
@@ -31,7 +27,7 @@ limpiar_metros <- function(.dataset) {
 censura_metros <- function(.dataset) {
   # Y ponemos el límite de los apartamentos y las casas:
   .dataset <- .dataset |> 
-    mutate(num_mt2 = ifelse(num_mt2 > 600 & cat_tipo=="apartamento", NA , num_mt2)) |>  
+    mutate(num_mt2 = ifelse(num_mt2 > 600 & cat_tipo=="apartamento", NA, num_mt2)) |>  
     # Reemplazamos NA's con la mediana.
     mutate(num_mt2 = ifelse(cat_tipo=="apartamento", replace_na(num_mt2, 104), num_mt2)) |> 
     mutate(num_mt2 = ifelse(num_mt2 > 1200 & cat_tipo=="casa", NA , num_mt2))
@@ -83,6 +79,21 @@ limpiar_piso <- function(.dataset) {
   .dataset <- .dataset |>  #  group_by(property_type_2) |>
     mutate(num_piso = ifelse(is.na(num_piso), as.integer(names(sort(table(num_piso), decreasing = TRUE)[1])), num_piso)) |>
     ungroup()
+  
+  return(.dataset)
+}
+
+limpiar_banos <- function(.dataset) {
+  # Dado que la base de datos ya cuenta con una observación de baños, creamos
+  # una temporal donde almacenar la información extraída mediante expresiones
+  # regulares.
+  .dataset <- .dataset |> 
+    mutate(num_bano_2 = str_extract(string  = tex_descripcion,
+                                    pattern = '(.*) (\d{1,2}) (bano(s)?|baño(s)?) (.*)', 
+                                    group   = 2)) |> 
+    mutate(num_bano = case_when(is.na(num_bano) ~ num_bano_2,
+                                TRUE ~ num_bano)) |> 
+    select(-c('num_bano_2'))
   
   return(.dataset)
 }
