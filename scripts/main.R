@@ -42,6 +42,7 @@ setwd(directorioPrincipal)
 primeraVez <- FALSE
 radio      <- 1500
 units(radio) <- 'm'
+source(paste0(directorioCodigo, 'functions/cleaning.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '01_data_cleaning.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '02_data_maps.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '03_data_regex.R'), encoding = 'UTF-8')
