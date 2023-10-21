@@ -2,8 +2,8 @@
 limpiar_casa <- function(.dataset) {
   sinonimos <- c("casa", "casas", "chalet", "campestre")
   .dataset <- .dataset |> 
-    mutate(tex_cat_tipo_titulo = str_extract(tex_titulo,"([Aa]partamento(s)?|apto|ap|duplex|penthouse|apartaestudio|ap[a-z]estudio|[Cc]asas?|chalet|casa campestre|estudio|miniapartamento)")) |> 
-    mutate(tex_cat_tipo_descripcion = str_extract(tex_descripcion,"([Aa]partamento(s)?|apto|ap|duplex|penthouse|apartaestudio|aparta estudio|ap[a-z+]estudio|[Cc]asas?|chalet|casa campestre|estudio|miniapartamento)" )) |> 
+    mutate(tex_cat_tipo_titulo = str_extract(tex_titulo,"([Aa]partamentos?|apto|ap|duplex|penthouse|apartaestudio|ap[a-z]estudio|[Cc]asas?|chalet|campestre|estudio|miniapartamento)")) |> 
+    mutate(tex_cat_tipo_descripcion = str_extract(tex_descripcion,"([Aa]partamentos?|apto|ap|duplex|penthouse|apartaestudio|aparta estudio|ap[a-z+]estudio|[Cc]asas?|chalet|campestre|estudio|miniapartamento)" )) |> 
     mutate(tex_cat_tipo = ifelse(is.na(tex_cat_tipo_titulo), tex_cat_tipo_descripcion, tex_cat_tipo_titulo)) |> 
     mutate(bin_casa = case_when(tex_cat_tipo %in% sinonimos ~ 1,
                                 TRUE ~ 0)) |> 
@@ -11,7 +11,6 @@ limpiar_casa <- function(.dataset) {
     # apartamento. Podríamos revisar más a fondo, dejando las variables
     # "tex_cat_tipo_titulo" y "tex_cat_tipo_descripcion", a ver cuáles
     # son NA y revisar si la descripción efectivamente no contiene la palabra.
-    mutate(bin_casa = ifelse(is.na(bin_casa), 0, 1)) |> 
     select(-c("tex_cat_tipo_titulo", "tex_cat_tipo_descripcion", "tex_cat_tipo"))
   
   return(.dataset)
