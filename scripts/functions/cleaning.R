@@ -1,11 +1,15 @@
 limpiar_casa <- function(.dataset) {
   .dataset <- .dataset |> 
-    mutate(tipo_prop = str_extract(tex_titulo,"([Aa]partamentos?|apto|ap|duplex|penthouse|apartaestudio|ap[a-z]estudio|[Cc]asas?)")) |> 
-    mutate(tipo_prop_desc = str_extract(tex_descripcion,"([Aa]partamentos?|apto|duplex|penthouse|apartaestudio|aparta estudio|ap[a-z+]estudio|[Cc]asas?)" )) |> 
+    mutate(tipo_prop = str_extract(tex_titulo,"([Aa]partamentos?|apto|ap|duplex|penthouse
+                                   |apartaestudio|ap[a-z]estudio|[Cc]asas?|chalet|casa campestre|estudio|miniapartamento)")) |> 
+    mutate(tipo_prop_desc = str_extract(tex_descripcion,"([Aa]partamentos?|apto|duplex
+                                   |penthouse|apartaestudio|aparta estudio|ap[a-z+]estudio|[Cc]asas?|chalet|casa campestre|estudio|miniapartamento)" )) |> 
     mutate(new_type = ifelse(is.na(tipo_prop),tipo_prop_desc, tipo_prop)) |> 
     mutate(d_type = case_when( new_type == "casa" ~ 1,
                                new_type == "Casa" ~ 1,
-                               new_type == "casas" ~ 1)) |> 
+                               new_type == "casas" ~ 1,
+                               new_type == "chalet" ~ 1,
+                               new_type == "casa campestre" ~ 1)) |> 
     mutate(d_type = ifelse(is.na(d_type),0, 1))
   
   # TODO. Verificar que el tipo de la propiedad sí sea casa o apartamento y sobreescribir la variable.
