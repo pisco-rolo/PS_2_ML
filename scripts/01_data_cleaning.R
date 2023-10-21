@@ -210,20 +210,6 @@ dataset_kaggle <- limpiar_piso(.dataset = dataset_kaggle)
 # E| Validación baños -----------------------------------------------------
 # TODO. Validar que el área total sea mayor o igual a la cubierta.
 
-
-
-# F| Parqueadero ----------------------------------------------------------
-dataset <- dataset |>
-  mutate(cat_parqueadero = ifelse(grepl("garage|parqueadero", tex_descripcion, ignore.case = TRUE), 1, 0))
-
-dataset_kaggle <- dataset_kaggle |> 
-  mutate(cat_parqueadero = ifelse(grepl("garage|parqueadero", tex_descripcion, ignore.case = TRUE), 1, 0))
-
-# 2.3| Limpieza con imputación --------------------------------------------
-
-
-
-# G |  Baños e imputacion de valores faltantes con la media.
 dataset$num_baño <- as.numeric(gsub(".*?(\\d+\\.?\\d*).*", "\\1", dataset$num_bano))
 dataset_kaggle$num_baño <- as.numeric(gsub(".*?(\\d+\\.?\\d*).*", "\\1", dataset_kaggle$num_bano))
 
@@ -231,7 +217,8 @@ dataset_kaggle$num_baño <- as.numeric(gsub(".*?(\\d+\\.?\\d*).*", "\\1", datase
 mean_num_bano <- mean(dataset$num_bano, na.rm = TRUE)
 # Llenar valores nulos con la media en num_bano en dataset_kaggle
 dataset$num_bano[is.na(dataset$num_bano)] <- mean_num_bano
-  
+
+# PENDIENTE, imputar por localidad y estrato
 # Calculo la media de num_bano en dataset_kaggle excluyendo los valores nulos
 mean_num_bano_kaggle <- mean(dataset_kaggle$num_bano, na.rm = TRUE)
 # llenar valores nulos con la media en num_bano en dataset_kaggle
@@ -245,6 +232,18 @@ hist(dataset$num_bano, main = "Distribución de Número de Baños", xlab = "Núm
 # Las barras más altas indican que hay más propiedades con un número de baños en ese rango
 # El histograma muestra que la mayoría de las propiedades en el conjunto de datos tienen un número de baños en el rango de 1 a 3 baños. Hay un número relativamente bajo de propiedades con más de 3 baños
 # me parecio interesante mirar esta relacion entre "numero de baños y precio"
+
+# F| Parqueadero ----------------------------------------------------------
+dataset <- dataset |>
+  mutate(cat_parqueadero = ifelse(grepl("garage|parqueadero", tex_descripcion, ignore.case = TRUE), 1, 0))
+
+dataset_kaggle <- dataset_kaggle |> 
+  mutate(cat_parqueadero = ifelse(grepl("garage|parqueadero", tex_descripcion, ignore.case = TRUE), 1, 0))
+
+# 2.3| Limpieza con imputación --------------------------------------------
+
+
+
 
 # 3| Estadística descriptiva ----------------------------------------------
 # Si bien los meses o años son variables numéricas, en realidad son categóricas
