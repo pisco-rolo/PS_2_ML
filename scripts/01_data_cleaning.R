@@ -151,60 +151,74 @@ print(xtable(x = tib_datos_faltantes, type = "latex",
       include.rownames = FALSE)
 
 # 2.2| Limpieza con expresiones regulares ---------------------------------
-# se podría llenar los valores faltantes en 'surface_total' y 'surface_covered' con 0
-# Las columnas surface_total y  'surface_covered' se refieren a las características de una propiedad inmobiliaria, como un apartamento o una casa. 
-# Estas columnas pueden representar el área total de la propiedad y el área cubierta de la propiedad, respectivamente.
+# Nota. NO llenar los valores faltantes en 'surface_total' y 'surface_covered' con 0, pues
+# no tiene sentido que apartamentos con cero metros cuadrados construidos tengan un precio positivo.
+# Estas columnas pueden representar el área total de la propiedad y el área cubierta de la 
+# propiedad, respectivamente.
 
-# TODO. Extraer los metros mediante expresiones regulares, y los datos faltantes sí llenarlos con
-# la media en lugar de cero.  
-combined_data <- combined_data %>%
-  mutate(surface_total = ifelse(is.na(surface_total), 0, surface_total),
-         surface_covered = ifelse(is.na(surface_covered), 0, surface_covered))
+# A| Validación de casa/apartamento ----------------------------------------
+dataset <- limpiar_casa(.dataset = dataset)
+dataset_kaggle <- limpiar_casa(.dataset = dataset_kaggle)
 
-# TODO. Rellenar número de habitaciones y número de baños.
+# Comparaciones.
+table(dataset$cat_tipo)
+table(dataset$d_type)
+table(dataset$cat_ano)
 
+# B| Validación metros cuadrados ------------------------------------------
+# TODO. Extraer los metros mediante expresiones regulares, y los datos faltantes 
+# sí llenarlos con la media por localidad, estrato, y si es casa o apartamento
+# -en lugar de cero, pues no tendría sentido pagar un precio positivo por un
+# inmueble sin espacio-.
+dataset <- limpiar_metros(.dataset = dataset)
+dataset_kaggle <- limpiar_metros(.dataset = dataset_kaggle)
+
+summary(dataset$num_mt2)
+
+# Ponemos límites a los metros cuadrados según distribución por casa y 
+# apartamento. Para ello, primero tomamos una estadística descriptiva:
+tapply(dataset$num_mt2, dataset$cat_tipo, summary)
+tapply(dataset$num_area_cubierta, dataset$cat_tipo, summary)
+
+dataset <- censura_metros(.dataset = dataset)
+dataset_kaggle <- censura_metros(.dataset = dataset_kaggle)
+
+summary(dataset$num_mt2)
+summary(dataset$num_area_total)
+
+# dataset <- dataset |> 
+#   mutate(d_area_true = ifelse(num_area_total > num_area_cubierta, 1, 0) )
+# 
+# table(combined_data$d_area_true)
+# summary(combined_data$num_area_total)
+# summary(combined_data$num_area_cubierta)
+# Sospechamos que ambas variables con incoherentes. 
+
+# TODO.Imputar medianas.
+
+# C| Validación de alcobas ------------------------------------------------
+dataset <- limpiar_alcobas(.dataset = dataset)
+dataset_kaggle <- limpiar_alcobas(.dataset = dataset_kaggle)
+
+summary(combined_data$num_rooms)
+
+# D| Validación piso ------------------------------------------------------
+dataset <- limpiar_piso(.dataset = dataset)
+dataset_kaggle <- limpiar_piso(.dataset = dataset_kaggle) 
+
+# E| Validación baños -----------------------------------------------------
 # TODO. Validar que el área total sea mayor o igual a la cubierta.
 
-# TODO. Verificar que el tipo de la propiedad sí sea casa o apartamento y sobreescribir la variable.
-combined_data <- combined_data %>%
-  mutate(property_type_2 = ifelse(grepl("casa", tex_descripcion), "casa", property_type))
 
-combined_data <- combined_data %>%
-  mutate(property_type_2 = ifelse(grepl("apto|apartamento", tex_descripcion), "apartamento", property_type_2)) %>%
-  select(-property_type)
 
-# TODO. Validar si una casa tiene garaje o parqueadero.
-combined_data <- combined_data %>%
+# F| Parqueadero ----------------------------------------------------------
+dataset <- dataset |>
   mutate(cat_parqueadero = ifelse(grepl("garage|parqueadero", tex_descripcion, ignore.case = TRUE), 1, 0))
 
-#con este codigo se intenta extraer información sobre el piso desde la descripción de la propiedad utilizando expresiones regulares. 
-#Luego, se convierten los números escritos en números numéricos para estandarizarlos. 
-#Finalmente, se crea una nueva columna llamada "piso_numerico" que contiene el número de piso, y se descartan los valores que son mayores de 20(puede ser cuestionable),posiblemente porque son considerados atípicos o incorrectos
-
-combined_data <- combined_data %>%
-  mutate(piso_info = str_extract(description, "(\\w+|\\d+) piso (\\w+|\\d+)"))
-
-numeros_escritos <- c("uno|primero|primer", "dos|segundo|segund", "tres|tercero|tercer", "cuatro|cuarto", "cinco|quinto", "seis|sexto", "siete|septimo", "ocho|octavo", "nueve|noveno", "diez|decimo|dei")
-numeros_numericos <- as.character(1:10)
-
-combined_data <- combined_data %>%
-  mutate(piso_info = str_replace_all(piso_info, setNames(numeros_numericos, numeros_escritos)))
-
-combined_data <- combined_data %>%
-  mutate(piso_numerico = as.integer(str_extract(piso_info, "\\d+")))
-
-combined_data <- combined_data %>%
-  mutate(piso_numerico = ifelse(piso_numerico > 20, NA, piso_numerico))
-
-# Imputación de valores faltantes en la variable 'piso_numerico'
-# Este codigo calcula la de frecuencia de los valores en la variable 'piso_numerico' dentro de cada grupo de 'property_type_2', luego ordena la tabla en orden descendente y selecciona el primer valor, que corresponde a la moda.
-combined_data <- combined_data %>%
-  group_by(property_type_2) %>%
-  mutate(piso_numerico = ifelse(is.na(piso_numerico), as.integer(names(sort(table(piso_numerico), decreasing = TRUE)[1])), piso_numerico)) %>%
-  ungroup()
+dataset_kaggle <- dataset_kaggle |> 
+  mutate(cat_parqueadero = ifelse(grepl("garage|parqueadero", tex_descripcion, ignore.case = TRUE), 1, 0))
 
 # 2.3| Limpieza con imputación --------------------------------------------
-
 
 
 # 3| Estadística descriptiva ----------------------------------------------
