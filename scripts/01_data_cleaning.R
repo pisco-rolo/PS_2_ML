@@ -127,6 +127,7 @@ nombres_variables   <- c('id_hogar', 'id_ciudad', 'num_precio', 'cat_mes',
                          'num_habitacion', 'num_dormitorio', 'num_bano',
                          'cat_tipo', 'cat_venta', 'num_latitud', 
                          'num_longitud', 'tex_titulo', 'tex_descripcion')
+
 colnames(dataset) <- nombres_variables
 colnames(dataset_kaggle) <- nombres_variables
 
