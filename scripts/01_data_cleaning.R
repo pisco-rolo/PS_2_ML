@@ -107,10 +107,19 @@ dataset_bogota <- st_read(paste0(directorioDatos,'upla/UPla.shp')) |>
 dataset_bogota <- st_transform(dataset_bogota, crs = 4326)
 
 dataset_localidades <- st_read(paste0(directorioDatos,'upla/Loca.shp'))
+dataset_localidades <- st_transform(dataset_localidades, crs = 4326)
 dataset_localidades <- dataset_localidades |> 
   select(c('id_localidad' = 'LocCodigo',
            'nom_localidad' = 'LocNombre',
            'geometry'))
+
+# Importamos características del censo por manzanas de Bogotá.
+dataset_censo <- st_read(paste0(directorioDatos, 'censo/censo_manzanas2018.shp'))
+dataset_censo <- st_transform(dataset_censo, crs = 4326)
+
+dataset_censo <- dataset_censo |> 
+  filter((u_dpto == '11') & (u_mpio == '001')) |> 
+  select(c('cat_estrato' = 'estrato'))
 
 # Definimos los nombres de las columnas tal y como trabajaremos en el futuro.
 nombres_variables   <- c('id_hogar', 'id_ciudad', 'num_precio', 'cat_mes', 
@@ -210,13 +219,6 @@ summary(dataset$num_piso)
 # E| Validación baños -----------------------------------------------------
 dataset <- limpiar_banos(.dataset = dataset)
 dataset_kaggle <- limpiar_banos(.dataset = dataset_kaggle)
-
-# F| Parqueadero ----------------------------------------------------------
-dataset <- dataset |>
-  mutate(cat_parqueadero = ifelse(grepl("garage|parqueadero", tex_descripcion, ignore.case = TRUE), 1, 0))
-
-dataset_kaggle <- dataset_kaggle |> 
-  mutate(cat_parqueadero = ifelse(grepl("garage|parqueadero", tex_descripcion, ignore.case = TRUE), 1, 0))
 
 # 2.3| Limpieza con imputación --------------------------------------------
 

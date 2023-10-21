@@ -7,6 +7,9 @@
 # - De Excel.
 validacionTroncal20230925.csv
 
+# - Geoespaciales.
+stores/censo/*
+
 # - De LaTeX.
 *.aux
 *.bbl
