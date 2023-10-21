@@ -118,8 +118,7 @@ nombres_variables   <- c('id_hogar', 'id_ciudad', 'num_precio', 'cat_mes',
                          'num_habitacion', 'num_dormitorio', 'num_bano',
                          'cat_tipo', 'cat_venta', 'num_latitud', 
                          'num_longitud', 'tex_titulo', 'tex_descripcion')
-colnames(train) <- nombres_variables
-colnames(test) <- nombres_variables
+
 
 # Variables como la ciudad o si se vendió la propiedad no nos son de interés
 # porque tienen un único valor y no aportan a la variabilidad de la predicción.
