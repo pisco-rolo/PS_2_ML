@@ -18,12 +18,29 @@ limpiar_casa <- function(.dataset) {
 
 limpiar_metros <- function(.dataset) {
   .dataset <- .dataset |> 
-    mutate(num_mt2 = str_extract(tex_descripcion, "\\b\\d+\\s*(?:m2|mts2|mts|m²|m\\^2|metros cuadrados|metros|mtrs|mtrs2|mts2|mt|mt2|mt23|m2?|metro cuadrados)\\b" )) |> 
-    mutate(num_mt2 = as.integer(str_extract(num_mt2, "\\d+")))
+    mutate(num_mt2 = str_extract(string = tex_descripcion,
+                                 pattern = '(\\d*) (?:m2|mts2|mts|m²|m\\^2|metros cuadrados|metros|mtrs|mtrs2|mts2|mt|mt2|mt23|m2?|metro cuadrados) (.*)', 
+                                 group = 1)) |> 
+    mutate(num_mt2 = as.numeric(num_mt2)) |> 
+    # Cuando los apartamentos tienen más de 1,000m2, lo más probable es que
+    # sea un error por desaparición del decimal. En ese caso, dividimos por 100
+    # los valores mayores a 1,000m2.
+    mutate(num_mt2 = case_when(num_mt2 > 1000 ~ num_mt2/100,
+                               TRUE ~ num_mt2)) |> 
+    # Si el valor no está disponible añadimos el valor del área total. Si el
+    # área total tampoco se encuentra disponible, usamos el área cubierta. Si
+    # no lo está, pasamos a imputar valores.
+    mutate(num_mt2 = case_when(is.na(num_mt2) ~ num_area_total,
+                               TRUE ~ num_mt2)) |> 
+    mutate(num_mt2 = case_when(is.na(num_mt2) ~ num_area_cubierta,
+                               TRUE ~ num_mt2))
   
   return(.dataset)
 }
 
+# TODO. La censura no parece adecuada mirando las descripciones de las casas.
+# Son pocas las que pasan los 600m2, pero típicamente sí es adecuado dada la 
+# descripción.
 censura_metros <- function(.dataset) {
   # Y ponemos el límite de los apartamentos y las casas:
   .dataset <- .dataset |> 
@@ -91,6 +108,7 @@ limpiar_banos <- function(.dataset) {
     mutate(num_bano_2 = str_extract(string  = tex_descripcion,
                                     pattern = '(.*) (\\d{1,2}) (bano(s)?|baño(s)?|bao(s)?) (.*)', 
                                     group   = 2)) |> 
+    mutate(num_bano_2 = as.numeric(num_bano_2)) |> 
     mutate(num_bano = case_when(is.na(num_bano) ~ num_bano_2,
                                 TRUE ~ num_bano)) |>
     select(-c('num_bano_2'))

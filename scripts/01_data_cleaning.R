@@ -131,6 +131,9 @@ nombres_variables   <- c('id_hogar', 'id_ciudad', 'num_precio', 'cat_mes',
 colnames(dataset) <- nombres_variables
 colnames(dataset_kaggle) <- nombres_variables
 
+dataset <- dataset |> select(-c('id_ciudad', 'cat_venta'))
+dataset_kaggle <- dataset_kaggle |> select(-c('id_ciudad', 'cat_venta'))
+
 # 2| Limpieza -------------------------------------------------------------
 # 2.1| Conteo de valores faltantes ----------------------------------------
 # Determinamos el número de valores faltantes en cada una de las variables.
@@ -185,27 +188,14 @@ summary(dataset$num_mt2)
 # Ponemos límites a los metros cuadrados según distribución por casa y 
 # apartamento. Para ello, primero tomamos una estadística descriptiva:
 tapply(dataset$num_mt2, dataset$cat_tipo, summary)
-tapply(dataset$num_area_cubierta, dataset$cat_tipo, summary)
 
-dataset <- censura_metros(.dataset = dataset)
-dataset_kaggle <- censura_metros(.dataset = dataset_kaggle)
+# dataset <- censura_metros(.dataset = dataset)
+# dataset_kaggle <- censura_metros(.dataset = dataset_kaggle)
 
-summary(dataset$num_mt2)
-summary(dataset$num_area_total)
-
-# TODO. Validar que el área total sea mayor o igual a la cubierta.
-# dataset <- dataset |> 
-#   mutate(d_area_true = ifelse(num_area_total > num_area_cubierta, 1, 0) )
-# 
-# table(combined_data$d_area_true)
-# summary(combined_data$num_area_total)
-# summary(combined_data$num_area_cubierta)
-# Sospechamos que ambas variables con incoherentes. 
-
-# TODO.Imputar medianas.
+# summary(dataset$num_mt2)
 
 # C| Validación de alcobas ------------------------------------------------
-# TODO. Censurar observaciones anómalas.
+# TODO. Parece que el número de dormitorios es una variable robusta.
 dataset <- limpiar_alcobas(.dataset = dataset)
 dataset_kaggle <- limpiar_alcobas(.dataset = dataset_kaggle)
 
@@ -264,7 +254,8 @@ scale_factor = base_exp/widthExp
 
 options(scipen=-1)
 graficaExportar <- dataset |> 
-  mutate(num_precio_m2 = round(x = num_precio/num_area_total, digits = 0)) |> 
+  mutate(num_precio_m2 = round(x = num_precio/num_mt2, digits = 0)) |> 
+  filter(num_precio_m2 <= 20000000) |> 
   select(c('num_precio', 'num_precio_m2')) |>
   pivot_longer(cols = everything(), names_to = 'Variable', values_to = 'Valores') |> 
   mutate(Variable = case_when(Variable == 'num_precio' ~ 'Precio del inmueble',

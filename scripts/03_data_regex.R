@@ -24,4 +24,3 @@ if (primeraVez == TRUE) {
   dataset <- readRDS(file = paste0(directorioDatos, 'datos_regex.rds'))
   dataset_kaggle <- readRDS(file = paste0(directorioDatos, 'datos_regex_evaluacion.rds'))
 }
-

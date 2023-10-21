@@ -39,11 +39,12 @@ setwd(directorioPrincipal)
 # Al definir 'primeraVez := TRUE', se realiza el análisis desde ceros. Esto
 # incluye descargar, nuevamente, la base de datos desde la página de Ignacio.
 # Dado que el proceso es demorado se recomienda definir el parámetro en FALSE.
-primeraVez <- FALSE
+primeraVez <- TRUE
 radio      <- 1500
 units(radio) <- 'm'
 source(paste0(directorioCodigo, 'functions/cleaning.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '01_data_cleaning.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '02_data_maps.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '03_data_regex.R'), encoding = 'UTF-8')
-source(paste0(directorioCodigo, '04_forecast.R'), encoding = 'UTF-8')
+source(paste0(directorioCodigo, '04_imputation.R'), encoding = 'UTF-8')
+source(paste0(directorioCodigo, '05_forecast.R'), encoding = 'UTF-8')
