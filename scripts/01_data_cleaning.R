@@ -211,20 +211,9 @@ dataset_kaggle <- limpiar_alcobas(.dataset = dataset_kaggle)
 
 summary(dataset$num_rooms)
 
-# D| Validación piso ------------------------------------------------------
-dataset <- limpiar_piso(.dataset = dataset)
-dataset_kaggle <- limpiar_piso(.dataset = dataset_kaggle) 
-
-summary(dataset$num_piso)
-
-# E| Validación baños -----------------------------------------------------
+# D| Validación baños -----------------------------------------------------
 dataset <- limpiar_banos(.dataset = dataset)
 dataset_kaggle <- limpiar_banos(.dataset = dataset_kaggle)
-
-# 2.3| Limpieza con imputación --------------------------------------------
-
-
-
 
 # 3| Estadística descriptiva ----------------------------------------------
 # Si bien los meses o años son variables numéricas, en realidad son categóricas

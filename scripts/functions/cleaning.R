@@ -63,7 +63,7 @@ limpiar_piso <- function(.dataset) {
   # posiblemente porque son considerados atípicos o incorrectos
   numeros_escritos <- c("uno|primero|primer", "dos|segundo|segund", 
                         "tres|tercero|tercer", "cuatro|cuarto", "cinco|quinto", 
-                        "seis|sexto", "siete|septimo", "ocho|octavo", 
+                        "seis|sexto", "siete|sptimo|septimo", "ocho|octavo", 
                         "nueve|noveno", "diez|decimo|dei")
   numeros_numericos <- as.character(1:10)
   
