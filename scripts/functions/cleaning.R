@@ -19,7 +19,7 @@ limpiar_casa <- function(.dataset) {
 limpiar_metros <- function(.dataset) {
   .dataset <- .dataset |> 
     mutate(num_mt2 = str_extract(string = tex_descripcion,
-                                 pattern = '(\\d*) (?:m2|mts2|mts|m²|m\\^2|metros cuadrados|metros|mtrs|mtrs2|mts2|mt|mt2|mt23|m2?|metro cuadrados) (.*)', 
+                                 pattern = '(\\d*) (?:m2|mts2|mts|m²|m\\^2|metros cuadrados|metros|mtrs|mtrs2|mts22|mt|mt2|mt23|m2?|metro cuadrados) (.*)', 
                                  group = 1)) |> 
     mutate(num_mt2 = as.numeric(num_mt2)) |> 
     # Cuando los apartamentos tienen más de 1,000m2, lo más probable es que
@@ -112,6 +112,34 @@ limpiar_banos <- function(.dataset) {
     mutate(num_bano = case_when(is.na(num_bano) ~ num_bano_2,
                                 TRUE ~ num_bano)) |>
     select(-c('num_bano_2'))
+  
+  return(.dataset)
+}
+
+limpiar_antiguedad <- function(.dataset) {
+  .dataset <- .dataset |> 
+    mutate(num_antiguedad = str_extract(string  = tex_descripcion,
+                                        pattern = '(.*) (antiguedad) (\\d+) (.*)',
+                                        group   = 3) |> as.integer()) |> 
+    # Las casas con más de 50 años de antiguedad son errores en la digitalización.
+    mutate(num_antiguedad = case_when(num_antiguedad > 50 ~ NA_integer_,
+                                      TRUE ~ num_antiguedad)) |> 
+    # A continuación continuamos extrayendo la antiguedad de la casa pero con
+    # otros patrones encontrados en los datos.
+    mutate(num_antiguedad = case_when(is.na(num_antiguedad) ~ str_extract(string  = tex_descripcion,
+                                                                          pattern = '(.*) (\\d+) (anos de antiguedad|aos de antiguedad|ano de antiguedad) (.*)',
+                                                                          group   = 2) |> as.integer(),
+                                      TRUE ~ num_antiguedad)) |> 
+    mutate(num_antiguedad = case_when(num_antiguedad > 50 ~ NA_integer_,
+                                      TRUE ~ num_antiguedad)) |> 
+    mutate(num_antiguedad = case_when(is.na(num_antiguedad) ~ str_extract(string  = tex_descripcion,
+                                                                          pattern = '(.*) (antiguedad de solo) (\\d+) (.*)',
+                                                                          group   = 3) |> as.integer(),
+                                      TRUE ~ num_antiguedad)) |> 
+    mutate(num_antiguedad = case_when(num_antiguedad > 50 ~ NA_integer_,
+                                      TRUE ~ num_antiguedad)) |> 
+    mutate(bin_antiguedad = case_when(num_antiguedad >= 10 ~ 1,
+                                      num_antiguedad < 10 ~ 0))
   
   return(.dataset)
 }
