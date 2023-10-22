@@ -12,7 +12,8 @@ set.seed(123)                       # Replicabilidad en las simulaciones.
 # 1.1| Librerias ----------------------------------------------------------
 librerias    <- c('here', 'tidyverse', 'tidymodels', 'conflicted', 'xtable',
                   'gtsummary', 'gt', 'rgeos', 'tmaptools', 'sf', 'osmdata',
-                  'leaflet', 'stringr', 'extrafont', 'spatialsample', 'xgboost')
+                  'leaflet', 'stringr', 'extrafont', 'spatialsample', 'xgboost',
+                  'lightgbm', 'bonsai')
 noInstaladas <- librerias[!(librerias %in% rownames(installed.packages()))]
 
 if(length(noInstaladas)){

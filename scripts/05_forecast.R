@@ -81,16 +81,16 @@ if (primeraVez == TRUE) {
   definitive_xgboost_fit <- fit(object = definitive_xgboost, 
                                 data   = dataset)
   
-  # Evaluamos el MAE por dentro de muestra para tener una noción del error
-  # que podríamos encontrar. En particular, el error es cercano a los 108'
-  # por dentro de muestra, calculado con el MAE. 
+  # Evaluamos el MAE de la validación cruzada para tener una noción del error
+  # que podríamos encontrar. En particular, el error es cercano a los 156.7', 
+  # calculado con el MAE, y tiene una desviación estándar de 5.4'. 
   prediccion <- tibble(
     id_hogar = dataset$id_hogar,
     precio_obs = dataset$num_precio,
     precio_est = predict(definitive_xgboost_fit, new_data = dataset) |> _$.pred
   )
   
-  mae_est <- (1/nrow(prediccion))* sum(abs(prediccion$precio_obs - prediccion$precio_est))
+  tune_xgboost |> show_best(metric = 'mae', n = 5) 
   
   # Finalmente, generamos la predicción de los datos por fuera de muestra y
   # guardamos los resultados para Kaggle. Con este modelo, el error es cercano
@@ -114,11 +114,88 @@ if (primeraVez == TRUE) {
                                                'xgboost_imp1_hip1.csv'))
 }
 
-
 # 2.2| lightgbm -----------------------------------------------------------
-# 
+# Los hiperparámetros del 'lightgbm' son idénticos a los del 'xgboost'. Luego,
+# usaremos la misma grilla para recorrer los diferentes posibles valores.
+lightgbm_model <- boost_tree(
+  tree_depth = tune(), 
+  trees = tune(),
+  learn_rate = tune(),
+  mtry = tune(), 
+  min_n = 30,
+  loss_reduction = 0,
+  sample_size = .5
+) |> 
+  set_mode('regression') |> 
+  set_engine('lightgbm', objective = "reg:squarederror")
 
+# Así mismo, el tratamiento de los datos también es el mismo. Por consiguiente,
+# utilizaremos la misma receta que con 'xgboost'.
+wf_lightgbm <- workflow() |> 
+  add_recipe(recipe_xgboost) |> 
+  add_model(lightgbm_model)
 
+# Además, usaremos los mismos bloques espaciales para validar la capacidad
+# predictiva de los distintos modelos, por lo que no volvemos a generar el
+# objeto 'block_folds'.
+if (primeraVez == TRUE) {
+  # Para cada combinación de parámetros, asignamos un valor de MAE en la
+  # validación cruzada por bloques espaciales.
+  tune_lightgbm <- tune_grid(
+    wf_lightgbm,
+    resamples = block_folds,
+    grid = tune_grid_xgboost,
+    metrics = metric_set(mae)
+  )
+  
+  # El código tardó más de 3 horas en correr, por lo que es preferible no
+  # ejecutarlo nuevamente. En su lugar, guardamos los resultados de los
+  # hiperparámetros y, con ellos (señalados en el 'submit' de Kaggle), 
+  # realizamos una estimación de la muestra de evaluación.
+  saveRDS(object = tune_lightgbm,
+          file = paste0(directorioDatos, 'optim_parms_lightgbm.rds'))
+  
+  best_parms_lightgbm <- select_best(tune_lightgbm, metric = 'mae')
+  definitive_lightgbm <- finalize_workflow(
+    x = wf_lightgbm, 
+    parameters = best_parms_lightgbm
+  )
+  
+  definitive_lightgbm_fit <- fit(object = definitive_lightgbm,
+                                 data   = dataset)
+  
+  # Evaluamos el MAE por dentro de muestra para tener una noción del error
+  # que podríamos encontrar. En particular, el error es cercano a los 108'
+  # por dentro de muestra, calculado con el MAE. 
+  prediccion <- tibble(
+    id_hogar = dataset$id_hogar,
+    precio_obs = dataset$num_precio,
+    precio_est = predict(definitive_lightgbm_fit, new_data = dataset) |> _$.pred
+  )
+  
+  tune_xgboost |> show_best(metric = 'mae', n = 5) 
+  
+  # Finalmente, generamos la predicción de los datos por fuera de muestra y
+  # guardamos los resultados para Kaggle. Con este modelo, el error es cercano
+  # a los 207' por fuera de muestra, calculado con el MAE.
+  prediccion <- tibble(
+    property_id = dataset_kaggle$id_hogar,
+    price = predict(definitive_lightgbm_fit, new_data = dataset_kaggle) |> 
+      _$.pred
+  )
+  
+  # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
+  # publicamos en Kaggle.
+  write.csv(x = prediccion,
+            file = paste0(directorioResultados, 'lightgbm_imp1_hip1.csv'),
+            row.names = FALSE)
+  
+} else {
+  tune_xgboost <- readRDS(file = paste0(directorioDatos, 
+                                        'optim_parms_lightgbm.rds'))
+  prediccion_xgboost <- read.csv(file = paste0(directorioResultados, 
+                                               'lightgbm_imp1_hip1.csv'))
+}
 
 # 2.3| Elastic net --------------------------------------------------------
 # Es importante que uno de los modelos genere predicciones suaves y no a partir
