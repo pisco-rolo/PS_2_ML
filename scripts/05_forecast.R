@@ -81,6 +81,28 @@ if (primeraVez == TRUE) {
   definitive_xgboost_fit <- fit(object = definitive_xgboost, 
                                 data   = dataset)
   
+  # Mostramos las variables más importantes para el boosting.
+  base_exp     = 1
+  heightExp    = 1
+  widthExp     = 1.2
+  scale_factor = base_exp/widthExp
+  
+  graficaExportar <- definitive_xgboost_fit |> 
+    extract_fit_parsnip() |> 
+    vip(num_features = 10) +
+    labs(title    = '',
+         subtitle = '',
+         caption  = '',
+         x        = 'Porcentaje de importancia',
+         y        = 'Variables más importantes') +
+    scale_y_continuous(expand = expansion(mult = c(0, .05))) +
+    theme_classic() +
+    theme(legend.position = "bottom")
+  
+  nombreArchivo <- 'importancia_xgboost.png'
+  ggsave(filename = paste0(directorioResultados, nombreArchivo), plot = graficaExportar,
+         width = 6 * widthExp, height = 4 * heightExp * widthExp, scale = scale_factor)
+  
   # Evaluamos el MAE de la validación cruzada para tener una noción del error
   # que podríamos encontrar. En particular, el error es cercano a los 156.7', 
   # calculado con el MAE, y tiene una desviación estándar de 5.4'. 
