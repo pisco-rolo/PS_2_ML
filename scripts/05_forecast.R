@@ -227,7 +227,8 @@ if (primeraVez == TRUE) {
 tune_grid_elasticNet <- grid_regular(
   # La penalización va desde 0.0001 hasta 1,000.
   penalty(range = c(-4, 3), trans = log10_trans()), # Relacionado con la penalización a la función de pérdida.
-  mixture(range = c(0, 1), trans = NULL) # Relacionado con la ponderación a Lasso.
+  mixture(range = c(0, 1), trans = NULL), # Relacionado con la ponderación a Lasso.
+  levels = c(penalty = 100, mixture = 10)
 )
 
 elasticNet_model <- linear_reg(
@@ -245,6 +246,57 @@ recipe_elasticNet <- recipe(num_precio ~ .,
   step_poly(num_distancia_calles, degree = 2) |>
   step_interact()
 
+wf_elasticNet <- workflow() |> 
+  add_recipe(recipe_elasticNet) |> 
+  add_model(elasticNet_model)
+
+if (primeraVez == TRUE) {
+  tune_elasticNet <- tune_grid(
+    wf_elasticNet,
+    resamples = block_folds,
+    grid = tune_grid_elasticNet,
+    metrics = metric_set(mae)
+  )
+  
+  saveRDS(object = tune_elasticNet,
+          file = paste0(directorioDatos, 'optim_parms_elasticNet.rds'))
+  
+  best_parms_elasticNet <- select_best(tune_elasticNet, metric = 'mae')
+  definitive_elasticNet <- finalize_workflow(
+    x = wf_elasticNet,
+    parameters = best_parms_elasticNet
+  )
+  
+  definitive_elasticNet_fit <- fit(object = definitive_elasticNet,
+                                   data   = dataset)
+  
+  prediccion <- tibble(
+    id_hogar = dataset$id_hogar,
+    precio_obs = dataset$num_precio,
+    precio_est = predict(definitive_elasticNet_fit, new_data = dataset) |> _$.pred
+  )
+  
+  tune_elasticNet |> show_best(metric = 'mae', n = 5) 
+  
+  prediccion <- tibble(
+    property_id = dataset_kaggle$id_hogar,
+    price = predict(definitive_elasticNet_fit, new_data = dataset_kaggle) |> 
+      _$.pred
+  )
+  
+  # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
+  # publicamos en Kaggle.
+  write.csv(x = prediccion,
+            file = paste0(directorioResultados, 'elasticNet_imp1_hip1.csv'),
+            row.names = FALSE)
+  
+} else {
+  tune_elasticNet <- readRDS(file = paste0(directorioDatos,
+                                           'optim_parms_elasticNet.rds'))
+  prediccion_elasticNet <- read.csv(file = paste0(directorioResultados, 
+                                                  'elasticNet_imp1_hip1.csv'))
+}
+  
 # 2.4| Ensemble -----------------------------------------------------------
 # Los 3 modelos anteriores tienen ventajas y desventajas. Sin embargo, es 
 # posible combinar las bondades de las diferentes predicciones mediante una
