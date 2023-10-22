@@ -224,12 +224,36 @@ if (primeraVez == TRUE) {
 # de particiones de los datos, pues puede haber regularidades que se capturan
 # con funciones lineales o cuadráticas típicas. Al estar Ridge y Lasso 
 # incluidos en elastic net, preferimos usar elastic net.
+tune_grid_elasticNet <- grid_regular(
+  # La penalización va desde 0.0001 hasta 1,000.
+  penalty(range = c(-4, 3), trans = log10_trans()), # Relacionado con la penalización a la función de pérdida.
+  mixture(range = c(0, 1), trans = NULL) # Relacionado con la ponderación a Lasso.
+)
 
+elasticNet_model <- linear_reg(
+  penalty = tune(),
+  mixture = tune()
+) |> 
+  set_mode('regression') |> 
+  set_engine('glmnet')
 
+recipe_elasticNet <- recipe(num_precio ~ .,
+                            data = dataset |> st_drop_geometry()) |> 
+  update_role(id_hogar, new_role = 'ID') |> 
+  step_normalize(all_predictors()) |> 
+  step_dummy(all_nominal_predictors()) |> 
+  step_poly(num_distancia_calles, degree = 2) |>
+  step_interact()
 
-# 2.4| Ensamble -----------------------------------------------------------
+# 2.4| Ensemble -----------------------------------------------------------
 # Los 3 modelos anteriores tienen ventajas y desventajas. Sin embargo, es 
 # posible combinar las bondades de las diferentes predicciones mediante una
 # combinación de pronósticos.
-
-
+# Nota. La forma automática toma una combinación lineal de todos los modelos
+# posibles -es decir, incluyendo cualquier combinación entre los 
+# hiperparámetros-. Sin embargo, ello no parece adecuado. Por consiguiente, a
+# continuación creamos, manualmente, la combinación, tal que incluya únicamente
+# la mejor combinación de hiperparámetros.
+# Definimos la grilla donde se buscarán los hiperparámetros que maximizan el
+# pronóstico por fuera de muestra.
+tune_grid_emsemble <- grid_regular()
