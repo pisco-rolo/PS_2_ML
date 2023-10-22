@@ -1,7 +1,12 @@
 # 1| Importar -------------------------------------------------------------
+rm(list = ls())
+#directoriodatos 
+directorioDatos <- "~/Desktop/Big Data and Maching learning /Repositorios /PS_2_ML/directorioDatos/"
+
 # Importamos la base de datos de entrenamiento y de evaluación.
 dataset <- read.csv(file = paste0(directorioDatos, 'train.csv'))
 dataset_kaggle <- read.csv(file = paste0(directorioDatos,'test.csv'))
+
 
 #Importo la información de las estaciones de transmilenio en formato json.
 dataset_tm <- st_read(paste0(directorioDatos,'estaciones_trocales_trm.geojson'))
