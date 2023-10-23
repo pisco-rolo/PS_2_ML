@@ -72,7 +72,7 @@ if (primeraVez == TRUE) {
   # hiperparámetros y, con ellos (señalados en el 'submit' de Kaggle), 
   # realizamos una estimación de la muestra de evaluación.
   saveRDS(object = tune_xgboost,
-          file = paste0(directorioDatos, 'optim_parms_xgboost.rds'))
+          file = paste0(directorioDatos, 'optim_parms_xgboost_2.rds'))
   
   best_parms_xgboost <- select_best(tune_xgboost, metric = 'mae')
   definitive_xgboost <- finalize_workflow(
@@ -127,15 +127,15 @@ if (primeraVez == TRUE) {
   
   # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
   # publicamos en Kaggle.
-  # write.csv(x = prediccion, 
-  #           file = paste0(directorioResultados, 'xgboost_imp1_hip1.csv'), 
-  #           row.names = FALSE)
+  write.csv(x = prediccion,
+            file = paste0(directorioResultados, 'xgboost_imp1_hip2.csv'),
+            row.names = FALSE)
   
 } else {
   tune_xgboost <- readRDS(file = paste0(directorioDatos, 
-                                        'optim_parms_xgboost.rds'))
+                                        'optim_parms_xgboost_2.rds'))
   prediccion_xgboost <- read.csv(file = paste0(directorioResultados, 
-                                               'xgboost_imp1_hip1.csv'))
+                                               'xgboost_imp1_hip2.csv'))
 }
 
 # 2.2| lightgbm -----------------------------------------------------------
@@ -177,7 +177,7 @@ if (primeraVez == TRUE) {
   # hiperparámetros y, con ellos (señalados en el 'submit' de Kaggle), 
   # realizamos una estimación de la muestra de evaluación.
   saveRDS(object = tune_lightgbm,
-          file = paste0(directorioDatos, 'optim_parms_lightgbm.rds'))
+          file = paste0(directorioDatos, 'optim_parms_lightgbm_2.rds'))
   
   best_parms_lightgbm <- select_best(tune_lightgbm, metric = 'mae')
   definitive_lightgbm <- finalize_workflow(
@@ -211,14 +211,14 @@ if (primeraVez == TRUE) {
   # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
   # publicamos en Kaggle.
   write.csv(x = prediccion,
-            file = paste0(directorioResultados, 'lightgbm_imp1_hip1.csv'),
+            file = paste0(directorioResultados, 'lightgbm_imp1_hip2.csv'),
             row.names = FALSE)
   
 } else {
   tune_xgboost <- readRDS(file = paste0(directorioDatos, 
-                                        'optim_parms_lightgbm.rds'))
+                                        'optim_parms_lightgbm_2.rds'))
   prediccion_xgboost <- read.csv(file = paste0(directorioResultados, 
-                                               'lightgbm_imp1_hip1.csv'))
+                                               'lightgbm_imp1_hip2.csv'))
 }
 
 # 2.3| Elastic net --------------------------------------------------------
@@ -275,7 +275,7 @@ if (primeraVez == TRUE) {
   )
   
   saveRDS(object = tune_elasticNet,
-          file = paste0(directorioDatos, 'optim_parms_elasticNet.rds'))
+          file = paste0(directorioDatos, 'optim_parms_elasticNet_2.rds'))
   
   best_parms_elasticNet <- select_best(tune_elasticNet, metric = 'mae')
   definitive_elasticNet <- finalize_workflow(
@@ -306,14 +306,14 @@ if (primeraVez == TRUE) {
   # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
   # publicamos en Kaggle.
   write.csv(x = prediccion,
-            file = paste0(directorioResultados, 'elasticNet_imp1_hip1.csv'),
+            file = paste0(directorioResultados, 'elasticNet_imp1_hip2.csv'),
             row.names = FALSE)
   
 } else {
   tune_elasticNet <- readRDS(file = paste0(directorioDatos,
-                                           'optim_parms_elasticNet.rds'))
+                                           'optim_parms_elasticNet_2.rds'))
   prediccion_elasticNet <- read.csv(file = paste0(directorioResultados, 
-                                                  'elasticNet_imp1_hip1.csv'))
+                                                  'elasticNet_imp1_hip2.csv'))
 }
   
 # 2.4| Ensemble -----------------------------------------------------------
@@ -386,7 +386,7 @@ if (primeraVez == TRUE) {
   )
   
   saveRDS(object = tune_ensemble,
-          file = paste0(directorioDatos, 'optim_parms_ensemble.rds'))
+          file = paste0(directorioDatos, 'optim_parms_ensemble_2.rds'))
   
   best_parms_ensemble <- select_best(tune_ensemble, metric = 'mae')
   definitive_ensemble <- finalize_workflow(
@@ -418,12 +418,12 @@ if (primeraVez == TRUE) {
   # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
   # publicamos en Kaggle.
   write.csv(x = prediccion,
-            file = paste0(directorioResultados, 'ensemble_imp1_hip1.csv'),
+            file = paste0(directorioResultados, 'ensemble_imp1_hip2.csv'),
             row.names = FALSE)
   
 } else {
   tune_elasticNet <- readRDS(file = paste0(directorioDatos,
-                                           'optim_parms_ensemble.rds'))
+                                           'optim_parms_ensemble_2.rds'))
   prediccion_elasticNet <- read.csv(file = paste0(directorioResultados, 
-                                                  'ensemble_imp1_hip1.csv'))
+                                                  'ensemble_imp1_hip2.csv'))
 }
