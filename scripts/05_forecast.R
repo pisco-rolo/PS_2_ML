@@ -151,7 +151,7 @@ lightgbm_model <- boost_tree(
   sample_size = .5
 ) |> 
   set_mode('regression') |> 
-  set_engine('lightgbm', objective = "reg:squarederror")
+  set_engine('lightgbm', objective = "mae")
 
 # Así mismo, el tratamiento de los datos también es el mismo. Por consiguiente,
 # utilizaremos la misma receta que con 'xgboost'.
@@ -188,16 +188,16 @@ if (primeraVez == TRUE) {
   definitive_lightgbm_fit <- fit(object = definitive_lightgbm,
                                  data   = dataset)
   
-  # Evaluamos el MAE por dentro de muestra para tener una noción del error
-  # que podríamos encontrar. En particular, el error es cercano a los 108'
-  # por dentro de muestra, calculado con el MAE. 
+  # Evaluamos el MAE de la validación cruzada para tener una noción del error
+  # que podríamos encontrar. En particular, el error es cercano a los 155.7', 
+  # calculado con el MAE, y tiene una desviación estándar de 8.2'. 
   prediccion <- tibble(
     id_hogar = dataset$id_hogar,
     precio_obs = dataset$num_precio,
     precio_est = predict(definitive_lightgbm_fit, new_data = dataset) |> _$.pred
   )
   
-  tune_xgboost |> show_best(metric = 'mae', n = 5) 
+  tune_lightgbm |> show_best(metric = 'mae', n = 5) 
   
   # Finalmente, generamos la predicción de los datos por fuera de muestra y
   # guardamos los resultados para Kaggle. Con este modelo, el error es cercano
@@ -230,7 +230,7 @@ tune_grid_elasticNet <- grid_regular(
   # La penalización va desde 0.0001 hasta 1,000.
   penalty(range = c(0.001, 1000), trans = NULL), # Relacionado con la penalización a la función de pérdida.
   mixture(range = c(0, 1), trans = NULL), # Relacionado con la ponderación a Lasso.
-  levels = c(penalty = 20, mixture = 10)
+  levels = c(penalty = 100, mixture = 20)
 )
 
 elasticNet_model <- linear_reg(
@@ -292,6 +292,9 @@ if (primeraVez == TRUE) {
     precio_est = predict(definitive_elasticNet_fit, new_data = dataset) |> _$.pred
   )
   
+  # Evaluamos el MAE de la validación cruzada para tener una noción del error
+  # que podríamos encontrar. En particular, el error es cercano a los 193.3', 
+  # calculado con el MAE, y tiene una desviación estándar de 5.2'. 
   tune_elasticNet |> show_best(metric = 'mae', n = 5) 
   
   prediccion <- tibble(
@@ -323,14 +326,14 @@ dataset_ensemble <- tibble(
   num_precio = dataset$num_precio,
   xgboost = predict(definitive_xgboost_fit, new_data = dataset) |> _$.pred,
   lightgbm = predict(definitive_lightgbm_fit, new_data = dataset) |> _$.pred,
-  elasticNet = predict(definitive_elasticNet_fit, newData = dataset) |> _$.pred
+  elasticNet = predict(definitive_elasticNet_fit, new_data = dataset) |> _$.pred
 )
 
 dataset_kaggle_ensemble <- tibble(
   id_hogar = dataset_kaggle$id_hogar,
   xgboost = predict(definitive_xgboost_fit, new_data = dataset_kaggle) |> _$.pred,
   lightgbm = predict(definitive_lightgbm_fit, new_data = dataset_kaggle) |> _$.pred,
-  elasticNet = predict(definitive_elasticNet_fit, newData = dataset_kaggle) |> _$.pred
+  elasticNet = predict(definitive_elasticNet_fit, new_data = dataset_kaggle) |> _$.pred
 )
 
 # A las predicciones es importante agregarles su dimensión espacial, pues
@@ -378,7 +381,7 @@ if (primeraVez == TRUE) {
   tune_ensemble <- tune_grid(
     wf_ensemble,
     resamples = block_folds,
-    grid = tune_grid_ensemble,
+    grid = tune_grid_emsemble,
     metrics = metric_set(mae)
   )
   
@@ -401,6 +404,9 @@ if (primeraVez == TRUE) {
       _$.pred
   )
   
+  # Evaluamos el MAE de la validación cruzada para tener una noción del error
+  # que podríamos encontrar. En particular, el error es cercano a los 193.3', 
+  # calculado con el MAE, y tiene una desviación estándar de 5.2'. 
   tune_elasticNet |> show_best(metric = 'mae', n = 5) 
   
   prediccion <- tibble(
