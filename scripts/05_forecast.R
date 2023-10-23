@@ -238,18 +238,30 @@ elasticNet_model <- linear_reg(
   set_mode('regression') |> 
   set_engine('glmnet')
 
-recipe_elasticNet <- recipe(num_precio ~ .,
-                            data = dataset |> st_drop_geometry()) |> 
-  update_role(id_hogar, new_role = 'ID') |> 
-  step_normalize(all_predictors()) |> 
-  step_dummy(all_nominal_predictors()) |> 
-  step_poly(num_distancia_calles, degree = 2) |>
-  step_interact()
 
+recipe_elasticNet <- recipe(num_precio ~ .,
+    data = dataset |> 
+    mutate(across(c(num_mt2, num_bano), ~replace_na(., mean(., na.rm=TRUE)))) |> 
+    st_drop_geometry()) |> 
+  
+  update_role(id_hogar, new_role = 'ID') |> 
+  step_dummy(all_nominal_predictors()) |> 
+  #step_interact(terms = ~ bin_zonaResidencial:bin_parqueadero +
+   #               starts_with("cat_estrato"):bin_zonaLaboral + 
+    #              starts_with("cat_estrato"):starts_with("cat_localidad")+
+     #             bin_casa:bin_parqueadero+num_mt2:starts_with("cat_estrato")+
+      #            num_mt2:starts_with("cat_localidad")+num_mt2:num_piso)|>
+  #step_normalize(all_predictors()) |> 
+  step_poly(num_distancia_calles, degree = 2) |>
+  step_poly(num_distancia_mall, degree = 2) |>
+  step_poly(num_distancia_tm, degree = 2)
+  
+  
 wf_elasticNet <- workflow() |> 
   add_recipe(recipe_elasticNet) |> 
   add_model(elasticNet_model)
 
+primeraVez = TRUE
 if (primeraVez == TRUE) {
   tune_elasticNet <- tune_grid(
     wf_elasticNet,
