@@ -34,7 +34,7 @@ directorioResultados = paste0(directorioPrincipal, '/views/')
 setwd(directorioPrincipal)
 
 # 1.3| Funciones ----------------------------------------------------------
-
+source(paste0(directorioCodigo, 'functions/cleaning.R'), encoding = 'UTF-8')
 
 # 2| Resultados -----------------------------------------------------------
 # Al definir 'primeraVez := TRUE', se realiza el análisis desde ceros. Esto
@@ -43,7 +43,6 @@ setwd(directorioPrincipal)
 primeraVez <- TRUE
 radio      <- 1500
 units(radio) <- 'm'
-source(paste0(directorioCodigo, 'functions/cleaning.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '01_data_cleaning.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '02_data_maps.R'), encoding = 'UTF-8')
 source(paste0(directorioCodigo, '03_data_regex.R'), encoding = 'UTF-8')
