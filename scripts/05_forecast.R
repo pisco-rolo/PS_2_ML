@@ -4,11 +4,15 @@
 # categórica y ello facilita la implementación del modelo.
 dataset <- dataset |> 
   rename(cat_localidad = nom_localidad) |> 
-  mutate(across(c(num_mt2, num_bano), ~replace_na(., mean(., na.rm=TRUE)))) 
+  mutate(across(c(num_mt2, num_bano, bin_elevador, bin_remodelada, 
+                  bin_walking_closet, bin_parqueadero), 
+                ~replace_na(., mean(., na.rm=TRUE)))) 
 
 dataset_kaggle <- dataset_kaggle |> 
   rename(cat_localidad = nom_localidad) |> 
-  mutate(across(c(num_mt2, num_bano), ~replace_na(., mean(., na.rm=TRUE)))) 
+  mutate(across(c(num_mt2, num_bano, bin_elevador, bin_remodelada, 
+                  bin_walking_closet, bin_parqueadero), 
+                ~replace_na(., mean(., na.rm=TRUE))))
 
 # 2| Predicción -----------------------------------------------------------
 # 2.1| xgboost ------------------------------------------------------------
@@ -256,7 +260,8 @@ recipe_ridge <- recipe(num_precio ~ .,
                 # num_mt2:starts_with("cat_localidad") +
                 # num_mt2:num_piso
   #) |>
-  step_normalize(all_double_predictors())
+  step_normalize(all_double_predictors())|>
+  step_normalize(all_predictors())
 
 wf_ridge <- workflow() |> 
   add_recipe(recipe_ridge) |> 
@@ -269,7 +274,7 @@ if (primeraVez == TRUE) {
     grid = tune_grid_ridge,
     metrics = metric_set(mae)
   )
-}
+
 
 saveRDS(object = tune_ridge,
         file = paste0(directorioDatos, 'optim_parms_ridge_1.rds'))
