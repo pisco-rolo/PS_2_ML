@@ -22,3 +22,4 @@ dataset_kaggle <- dataset_kaggle |>
   mutate(num_bano = case_when(is.na(num_bano) ~ median(num_bano, na.rm = TRUE),
                               TRUE ~ num_bano)) |> 
   ungroup()
+
