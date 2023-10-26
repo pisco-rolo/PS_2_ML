@@ -224,8 +224,59 @@ if (primeraVez == TRUE) {
   prediccion_xgboost <- read.csv(file = paste0(directorioResultados, 
                                                'lightgbm_imp1_hip2.csv'))
 }
-# 2.3| Linear regression --------------------------------------------------------
-# 2.4| Ridge --------------------------------------------------------
+
+# 2.3| Linear regression -------------------------------------------------------
+lm_model <- linear_reg()
+
+recipe_lm <- recipe(num_precio ~ ., 
+                    data = dataset |>
+                      st_drop_geometry())
+
+wf_lm <- workflow() |> 
+  add_recipe(recipe_lm) |> 
+  add_model(lm_model)
+
+if (primeraVez == TRUE) {
+  fit_lm <- fit_resamples(
+    wf_lm,
+    resamples = block_folds,
+    metrics = metric_set(mae)
+  )
+  
+
+  definitive_ridge_fit <- fit(object = definitive_ridge,
+                              data   = dataset)
+  
+  prediccion <- tibble(
+    id_hogar = dataset$id_hogar,
+    precio_obs = dataset$num_precio,
+    precio_est = predict(definitive_ridge_fit, new_data = dataset) |> _$.pred
+  )
+  
+  # Evaluamos el MAE de la validación cruzada para tener una noción del error
+  # que podríamos encontrar. En particular, el error es cercano a los 193.3', 
+  # calculado con el MAE, y tiene una desviación estándar de 5.2'. 
+  tune_ridge |> show_best(metric = 'mae', n = 5) 
+  
+  prediccion <- tibble(
+    property_id = dataset_kaggle$id_hogar,
+    price = predict(definitive_ridge_fit, new_data = dataset_kaggle) |> 
+      _$.pred
+  )
+  
+  # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
+  # publicamos en Kaggle.
+  write.csv(x = prediccion,
+            file = paste0(directorioResultados, 'ridge_imp1_hip1.csv'),
+            row.names = FALSE)
+  
+} else {
+  tune_ridge <- readRDS(file = paste0(directorioDatos,
+                                      'optim_parms_ridge_1.rds'))
+  prediccion_ridge <- read.csv(file = paste0(directorioResultados, 
+                                             'ridge_imp1_hip2.csv'))
+}
+# 2.4| Ridge -------------------------------------------------------------------
 tune_grid_ridge <- grid_regular(
   # La penalización va desde 0.0001 hasta 1,000.
   penalty(range = c(0.001, 1000)), # Relacionado con la penalización a la función de pérdida.
@@ -297,29 +348,121 @@ prediccion <- tibble(
 # Evaluamos el MAE de la validación cruzada para tener una noción del error
 # que podríamos encontrar. En particular, el error es cercano a los 193.3', 
 # calculado con el MAE, y tiene una desviación estándar de 5.2'. 
-tune_grid_ridge |> show_best(metric = 'mae', n = 5) 
+tune_ridge |> show_best(metric = 'mae', n = 5) 
 
 prediccion <- tibble(
   property_id = dataset_kaggle$id_hogar,
-  price = predict(definitive_elasticNet_fit, new_data = dataset_kaggle) |> 
+  price = predict(definitive_ridge_fit, new_data = dataset_kaggle) |> 
     _$.pred
 )
 
 # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
 # publicamos en Kaggle.
 write.csv(x = prediccion,
-          file = paste0(directorioResultados, 'elasticNet_imp1_hip2.csv'),
+          file = paste0(directorioResultados, 'ridge_imp1_hip1.csv'),
           row.names = FALSE)
 
 } else {
-  tune_elasticNet <- readRDS(file = paste0(directorioDatos,
-                                           'optim_parms_elasticNet_2.rds'))
-  prediccion_elasticNet <- read.csv(file = paste0(directorioResultados, 
-                                                  'elasticNet_imp1_hip2.csv'))
+  tune_ridge <- readRDS(file = paste0(directorioDatos,
+                                           'optim_parms_ridge_1.rds'))
+  prediccion_ridge <- read.csv(file = paste0(directorioResultados, 
+                                                  'ridge_imp1_hip2.csv'))
 }
+
+# 2.5| Lasso -------------------------------------------------------------------
+tune_grid_lasso <- grid_regular(
+  # La penalización va desde 0.0001 hasta 1,000.
+  penalty(range = c(0.001, 1000)), # Relacionado con la penalización a la función de pérdida.
+  levels  = 100
+)
+
+lasso_model <- linear_reg(
+  mixture = 1, 
+  penalty = tune()
+) %>%
+  set_mode("regression") %>%
+  set_engine("glmnet")
+
+recipe_lasso <- recipe(num_precio ~ .,
+                       data = dataset |> 
+                         st_drop_geometry()) |> 
+  update_role(id_hogar, new_role = 'ID') |> 
+  # Una muestra de entrenamiento puede no tener todas las localidades, por lo 
+  # que es necesario que se asigne categorías anteriormente no vistas a la
+  # categoría 'new'.
+  step_novel(all_nominal_predictors()) |> 
+  step_poly(num_distancia_calles, num_distancia_mall, num_distancia_tm,
+            degree = 2) |>
+  step_dummy(all_nominal_predictors()) |> 
+  step_zv(all_predictors()) |> 
+  # TODO. La interacción no la hemos podido hacer funcionar.
+  #step_interact(terms = ~ bin_zonaResidencial:bin_parqueadero +
+  # starts_with("cat_estrato"):bin_zonaLaboral +
+  # starts_with("cat_estrato"):starts_with("cat_localidad") +
+  #bin_casa:bin_parqueadero
+  # num_mt2:starts_with("cat_estrato") +
+  # num_mt2:starts_with("cat_localidad") +
+  # num_mt2:num_piso
+  #) |>
+  step_normalize(all_double_predictors())|>
+  step_normalize(all_predictors())
+
+wf_lasso <- workflow() |> 
+  add_recipe(recipe_lasso) |> 
+  add_model(lasso_model)
+
+if (primeraVez == TRUE) {
+  tune_lasso <- tune_grid(
+    wf_lasso,
+    resamples = block_folds,
+    grid = tune_grid_lasso,
+    metrics = metric_set(mae)
+  )
   
-# 2.5| Lasso --------------------------------------------------------
-# 2.6| Elastic net --------------------------------------------------------
+  
+  saveRDS(object = tune_lasso,
+          file = paste0(directorioDatos, 'optim_parms_lasso_1.rds'))
+  
+  best_parms_lasso <- select_best(tune_lasso, metric = 'mae')
+  definitive_lasso <- finalize_workflow(
+    x = wf_lasso,
+    parameters = best_parms_lasso
+  )
+  
+  definitive_lasso_fit <- fit(object = definitive_lasso,
+                              data   = dataset)
+  
+  prediccion <- tibble(
+    id_hogar = dataset$id_hogar,
+    precio_obs = dataset$num_precio,
+    precio_est = predict(definitive_lasso_fit, new_data = dataset) |> _$.pred
+  )
+  
+  # Evaluamos el MAE de la validación cruzada para tener una noción del error
+  # que podríamos encontrar. En particular, el error es cercano a los 193.3', 
+  # calculado con el MAE, y tiene una desviación estándar de 5.2'. 
+  tune_lasso |> show_best(metric = 'mae', n = 5) 
+  
+  prediccion <- tibble(
+    property_id = dataset_kaggle$id_hogar,
+    price = predict(definitive_lasso_fit, new_data = dataset_kaggle) |> 
+      _$.pred
+  )
+  
+  # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
+  # publicamos en Kaggle.
+  write.csv(x = prediccion,
+            file = paste0(directorioResultados, 'lasso_imp1_hip1.csv'),
+            row.names = FALSE)
+  
+} else {
+  tune_lasso <- readRDS(file = paste0(directorioDatos,
+                                      'optim_parms_lasso_1.rds'))
+  prediccion_lasso <- read.csv(file = paste0(directorioResultados, 
+                                                  'lasso_imp1_hip2.csv'))
+}
+
+# 2.6| Elastic net -------------------------------------------------------------
 # Es importante que uno de los modelos genere predicciones suaves y no a partir
 # de particiones de los datos, pues puede haber regularidades que se capturan
 # con funciones lineales o cuadráticas típicas. Al estar Ridge y Lasso 
