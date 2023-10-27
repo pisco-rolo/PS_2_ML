@@ -228,20 +228,20 @@ if (primeraVez == TRUE) {
 # 2.3| Linear regression -------------------------------------------------------
 lm_model <- linear_reg()
 
-recipe_lm <- recipe(num_precio ~ ., 
-                    data = dataset |>
-                      st_drop_geometry())
+dataset2 <- st_drop_geometry(dataset)
 
 wf_lm <- workflow() |> 
   add_recipe(recipe_lm) |> 
   add_model(lm_model)
 
+lm_fit <- lm_model %>% 
+  fit(num_precio ~ ., data = dataset2)
+
+
 if (primeraVez == TRUE) {
-  fit_lm <- fit_resamples(
-    wf_lm,
-    resamples = block_folds,
-    metrics = metric_set(mae)
-  )
+  
+lm_fit <- lm_model %>% 
+    fit(num_precio ~ ., data = dataset2)
   
 
   definitive_ridge_fit <- fit(object = definitive_ridge,
