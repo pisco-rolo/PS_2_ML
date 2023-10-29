@@ -3,6 +3,7 @@
 *.Rhistory
 .Rproj.user
 *.DS_Store
+*.RDataTmp
 
 # - De Excel.
 validacionTroncal20230925.csv
