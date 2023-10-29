@@ -165,7 +165,7 @@ crear_variables_geograficas <- function(
   
   # 1.1| Universidades ------------------------------------------------------
   # Estimamos la distancia (en metros) de la Universidad más cercana.
-  data_osm <- opq(bbox = getbb('Bogotá, Distrito Capital')) |> 
+  data_osm <- opq(bbox = getbb('Bogota Colombia')) |> 
     add_osm_feature(key = 'amenity', value = 'university')
   
   sf_universidades <- osmdata_sf(data_osm)
@@ -185,7 +185,7 @@ crear_variables_geograficas <- function(
   
   # 1.2| Zonas sociales -----------------------------------------------------
   # Conteo del número de restaurantes, bares, cafés, y pubs en un área.
-  data_osm <- opq(bbox = getbb('Bogotá, Distrito Capital')) |> 
+  data_osm <- opq(bbox = getbb('Bogota Colombia')) |> 
     add_osm_features(features = list('amenity' = 'bar',
                                      'amenity' = 'restaurant',
                                      'amenity' = 'cafe',
@@ -214,7 +214,7 @@ crear_variables_geograficas <- function(
   # 1.3| Distancia de calles principales ------------------------------------
   # TODO. Incluir la forma cuadrática por el costo de vivir demasiado cerca de la 
   # principal.
-  data_osm <- opq(bbox = getbb('Bogotá, Distrito Capital')) |> 
+  data_osm <- opq(bbox = getbb('Bogota Colombia')) |> 
     add_osm_feature(key = 'highway', value = 'primary')
   
   # Desafortunadamente, imprime muchas calles. Sospechamos que no todas ellas
@@ -251,7 +251,7 @@ crear_variables_geograficas <- function(
   # eso implica que son de un tamaño lo suficientemente grande como ser un centro
   # comercial. Al tomar los puntos que ubican los 'centros comerciales' aparecen
   # demasiados, y ello puede ser un error de clasificación.
-  data_osm <- opq(bbox = getbb('Bogotá, Distrito Capital')) |> 
+  data_osm <- opq(bbox = getbb('Bogota Colombia')) |> 
     add_osm_feature(key = 'shop', value = 'mall')
   
   sf_mall <- osmdata_sf(data_osm)
@@ -268,7 +268,7 @@ crear_variables_geograficas <- function(
   
   # 1.6| Parques ------------------------------------------------------------
   # Distancia del parque más cercano.
-  data_osm <- opq(bbox = getbb('Bogotá, Distrito Capital')) |> 
+  data_osm <- opq(bbox = getbb('Bogota Colombia')) |> 
     add_osm_feature(key = 'leisure', value = 'park')
   
   sf_parques <- osmdata_sf(data_osm)
@@ -289,7 +289,7 @@ crear_variables_geograficas <- function(
   .dataset <- .dataset |> mutate(num_area_parque = as.numeric(areas[posicion]))
   
   # 1.7| CAI ----------------------------------------------------------------
-  data_osm <-  opq(bbox = getbb('Bogotá, Distrito Capital')) |> 
+  data_osm <-  opq(bbox = getbb('Bogota Colombia')) |> 
     add_osm_feature(key = 'amenity', value = 'police')
   
   sf_cai <- osmdata_sf(data_osm)
@@ -312,7 +312,7 @@ crear_variables_geograficas <- function(
   
   # 1.9| Parqueaderos -------------------------------------------------------
   # Conteo del número de parqueaderos en un área.
-  data_osm <- opq(bbox = getbb('Bogotá, Distrito Capital')) |> 
+  data_osm <- opq(bbox = getbb('Bogota Colombia')) |> 
     add_osm_feature(key = 'amenity', value = 'parking')
   
   sf_parking <- osmdata_sf(data_osm)
