@@ -13,7 +13,8 @@ set.seed(123)                       # Replicabilidad en las simulaciones.
 librerias    <- c('here', 'tidyverse', 'tidymodels', 'conflicted', 'xtable',
                   'gtsummary', 'gt', 'rgeos', 'tmaptools', 'sf', 'osmdata',
                   'leaflet', 'stringr', 'extrafont', 'spatialsample', 'xgboost',
-                  'lightgbm', 'bonsai', 'vip')
+                  'lightgbm', 'bonsai', 'vip', 'randomForest', 'rpart', 
+                  'baguette')
 noInstaladas <- librerias[!(librerias %in% rownames(installed.packages()))]
 
 if(length(noInstaladas)){
@@ -40,7 +41,7 @@ source(paste0(directorioCodigo, 'functions/cleaning.R'), encoding = 'UTF-8')
 # Al definir 'primeraVez := TRUE', se realiza el análisis desde ceros. Esto
 # incluye descargar, nuevamente, la base de datos desde la página de Ignacio.
 # Dado que el proceso es demorado se recomienda definir el parámetro en FALSE.
-primeraVez <- TRUE
+primeraVez <- FALSE
 radio      <- 1500
 units(radio) <- 'm'
 source(paste0(directorioCodigo, '01_data_cleaning.R'), encoding = 'UTF-8')

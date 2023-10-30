@@ -109,9 +109,16 @@ if (primeraVez == TRUE) {
   ggsave(filename = paste0(directorioResultados, nombreArchivo), plot = graficaExportar,
          width = 6 * widthExp, height = 4 * heightExp * widthExp, scale = scale_factor)
   
-  # Evaluamos el MAE de la validación cruzada para tener una noción del error
-  # que podríamos encontrar. En particular, el error es cercano a los 156.7', 
-  # calculado con el MAE, y tiene una desviación estándar de 5.4'. 
+  # - Variables originales. Evaluamos el MAE de la validación cruzada para 
+  #   tener una noción del error que podríamos encontrar. En particular, el 
+  #   error es cercano a los 156.7', calculado con el MAE, y tiene una 
+  #   desviación estándar de 5.4'. 
+  # - Extensión. Evaluamos el MAE de la validación cruzada para 
+  #   tener una noción del error que podríamos encontrar. En particular, el 
+  #   error es cercano a los 156.3', calculado con el MAE, y tiene una 
+  #   desviación estándar de 5.1'. Por tanto, hay una mejora en la predicción
+  #   al incluir variables relacionadas con la remodelación, el walking closet,
+  #   y si el edificio tiene ascensor o no. 
   prediccion <- tibble(
     id_hogar = dataset$id_hogar,
     precio_obs = dataset$num_precio,
@@ -192,9 +199,13 @@ if (primeraVez == TRUE) {
   definitive_lightgbm_fit <- fit(object = definitive_lightgbm,
                                  data   = dataset)
   
-  # Evaluamos el MAE de la validación cruzada para tener una noción del error
-  # que podríamos encontrar. En particular, el error es cercano a los 155.7', 
-  # calculado con el MAE, y tiene una desviación estándar de 8.2'. 
+  # - Variables originales. Evaluamos el MAE de la validación cruzada para tener 
+  #   una noción del error que podríamos encontrar. En particular, el error es 
+  #   cercano a los 155.7', calculado con el MAE, y tiene una desviación 
+  #   estándar de 8.2'.
+  # - Extensión. Evaluamos el MAE de la validación cruzada para tener una noción
+  #   del error que podríamos encontrar. En particular, el error es cercano a
+  #   los 155', calculado con el MAE, y tiene una desviación estándar de 7.3'. 
   prediccion <- tibble(
     id_hogar = dataset$id_hogar,
     precio_obs = dataset$num_precio,
@@ -219,99 +230,100 @@ if (primeraVez == TRUE) {
             row.names = FALSE)
   
 } else {
-  tune_xgboost <- readRDS(file = paste0(directorioDatos, 
-                                        'optim_parms_lightgbm_2.rds'))
-  prediccion_xgboost <- read.csv(file = paste0(directorioResultados, 
-                                               'lightgbm_imp1_hip2.csv'))
+  tune_lightgbm <- readRDS(file = paste0(directorioDatos, 
+                                         'optim_parms_lightgbm_2.rds'))
+  prediccion_lightgbm <- read.csv(file = paste0(directorioResultados,
+                                                'lightgbm_imp1_hip2.csv'))
 }
 
 # 2.3| Linear regression -------------------------------------------------------
-lm_model <- linear_reg()
+lm_model <- linear_reg(mode = 'regression', engine = 'lm', 
+                       penalty = NULL, mixture = NULL)
 
-dataset2 <- st_drop_geometry(dataset)
-
-wf_lm <- workflow() |> 
-  add_recipe(recipe_lm) |> 
-  add_model(lm_model)
-
-lm_fit <- lm_model %>% 
-  fit(num_precio ~ ., data = dataset2)
-
-
-if (primeraVez == TRUE) {
-  
-lm_fit <- lm_model %>% 
-    fit(num_precio ~ ., data = dataset2)
-  
-
-  definitive_ridge_fit <- fit(object = definitive_ridge,
-                              data   = dataset)
-  
-  prediccion <- tibble(
-    id_hogar = dataset$id_hogar,
-    precio_obs = dataset$num_precio,
-    precio_est = predict(definitive_ridge_fit, new_data = dataset) |> _$.pred
-  )
-  
-  # Evaluamos el MAE de la validación cruzada para tener una noción del error
-  # que podríamos encontrar. En particular, el error es cercano a los 193.3', 
-  # calculado con el MAE, y tiene una desviación estándar de 5.2'. 
-  tune_ridge |> show_best(metric = 'mae', n = 5) 
-  
-  prediccion <- tibble(
-    property_id = dataset_kaggle$id_hogar,
-    price = predict(definitive_ridge_fit, new_data = dataset_kaggle) |> 
-      _$.pred
-  )
-  
-  # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
-  # publicamos en Kaggle.
-  write.csv(x = prediccion,
-            file = paste0(directorioResultados, 'ridge_imp1_hip1.csv'),
-            row.names = FALSE)
-  
-} else {
-  tune_ridge <- readRDS(file = paste0(directorioDatos,
-                                      'optim_parms_ridge_1.rds'))
-  prediccion_ridge <- read.csv(file = paste0(directorioResultados, 
-                                             'ridge_imp1_hip2.csv'))
-}
-# 2.4| Ridge -------------------------------------------------------------------
-tune_grid_ridge <- grid_regular(
-  # La penalización va desde 0.0001 hasta 1,000.
-  penalty(range = c(0.001, 1000)), # Relacionado con la penalización a la función de pérdida.
-  levels  = 100
-)
-
-ridge_model <- linear_reg(
-  mixture = 0, 
-  penalty = tune()
-) %>%
-  set_mode("regression") %>%
-  set_engine("glmnet")
-
-recipe_ridge <- recipe(num_precio ~ .,
-                            data = dataset |> 
-                              st_drop_geometry()) |> 
+recipe_lm <- recipe(num_precio ~ .,
+                    data = dataset |> st_drop_geometry()) |> 
   update_role(id_hogar, new_role = 'ID') |> 
   # Una muestra de entrenamiento puede no tener todas las localidades, por lo 
   # que es necesario que se asigne categorías anteriormente no vistas a la
   # categoría 'new'.
   step_novel(all_nominal_predictors()) |> 
   step_poly(num_distancia_calles, num_distancia_mall, num_distancia_tm,
-  degree = 2) |>
+            degree = 2) |>
   step_dummy(all_nominal_predictors()) |> 
   step_zv(all_predictors()) |> 
-  # TODO. La interacción no la hemos podido hacer funcionar.
-  #step_interact(terms = ~ bin_zonaResidencial:bin_parqueadero +
-                  # starts_with("cat_estrato"):bin_zonaLaboral +
-                  # starts_with("cat_estrato"):starts_with("cat_localidad") +
-                  #bin_casa:bin_parqueadero
-                # num_mt2:starts_with("cat_estrato") +
-                # num_mt2:starts_with("cat_localidad") +
-                # num_mt2:num_piso
-  #) |>
-  step_normalize(all_double_predictors())|>
+  step_interact(terms = ~ bin_zonaResidencial:bin_parqueadero +
+                  bin_casa:bin_parqueadero
+  ) |>
+  step_normalize(all_predictors())
+
+wf_lm <- workflow() |> 
+  add_recipe(recipe_lm) |> 
+  add_model(lm_model)
+
+if (primeraVez == TRUE) {
+  
+  definitive_lm <- finalize_workflow(
+      x = wf_lm, 
+      parameters = tibble(penalty = NULL, mixture = NULL)
+    )
+  
+  definitive_lm_fit <- fit(object = definitive_lm,
+                           data   = dataset)
+  
+  prediccion <- tibble(
+    id_hogar = dataset$id_hogar,
+    precio_obs = dataset$num_precio,
+    precio_est = predict(definitive_lm_fit, new_data = dataset) |> _$.pred
+  )
+  
+  sqrt((1/nrow(prediccion))*sum((prediccion$precio_obs-prediccion$precio_est)^2))
+  
+  prediccion <- tibble(
+    property_id = dataset_kaggle$id_hogar,
+    price = predict(definitive_lm_fit, new_data = dataset_kaggle) |> 
+      _$.pred
+  )
+  
+  # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
+  # publicamos en Kaggle.
+  write.csv(x = prediccion,
+            file = paste0(directorioResultados, 'lm_imp1.csv'),
+            row.names = FALSE)
+  
+} else {
+  prediccion_lm <- read.csv(file = paste0(directorioResultados,
+                                          'lm_imp1.csv'))
+}
+# 2.4| Ridge -------------------------------------------------------------------
+tune_grid_ridge <- grid_regular(
+  # La penalización va desde 0.0001 hasta 1,000.
+  penalty(range = c(0.001, 1000), trans = NULL), # Relacionado con la penalización a la función de pérdida.
+  levels  = 200
+)
+
+ridge_model <- linear_reg(
+  # Mixture 0 implica que se le da 0% de ponderación a Lasso y, por tanto,
+  # la estimación es meramente un Ridge.
+  mixture = 0,
+  penalty = tune()
+) |>
+  set_mode("regression") |>
+  set_engine("glmnet")
+
+recipe_ridge <- recipe(num_precio ~ .,
+                       data = dataset |> st_drop_geometry()) |> 
+  update_role(id_hogar, new_role = 'ID') |> 
+  # Una muestra de entrenamiento puede no tener todas las localidades, por lo 
+  # que es necesario que se asigne categorías anteriormente no vistas a la
+  # categoría 'new'.
+  step_novel(all_nominal_predictors()) |> 
+  step_poly(num_distancia_calles, num_distancia_mall, num_distancia_tm,
+            degree = 2) |>
+  step_dummy(all_nominal_predictors()) |> 
+  step_zv(all_predictors()) |> 
+  step_interact(terms = ~ bin_zonaResidencial:bin_parqueadero +
+                  bin_casa:bin_parqueadero
+  ) |>
   step_normalize(all_predictors())
 
 wf_ridge <- workflow() |> 
@@ -326,41 +338,40 @@ if (primeraVez == TRUE) {
     metrics = metric_set(mae)
   )
 
+  saveRDS(object = tune_ridge,
+          file = paste0(directorioDatos, 'optim_parms_ridge_1.rds'))
 
-saveRDS(object = tune_ridge,
-        file = paste0(directorioDatos, 'optim_parms_ridge_1.rds'))
-
-best_parms_ridge <- select_best(tune_ridge, metric = 'mae')
-definitive_ridge <- finalize_workflow(
-  x = wf_ridge,
-  parameters = best_parms_ridge
-)
-
-definitive_ridge_fit <- fit(object = definitive_ridge,
-                                 data   = dataset)
-
-prediccion <- tibble(
-  id_hogar = dataset$id_hogar,
-  precio_obs = dataset$num_precio,
-  precio_est = predict(definitive_ridge_fit, new_data = dataset) |> _$.pred
-)
-
-# Evaluamos el MAE de la validación cruzada para tener una noción del error
-# que podríamos encontrar. En particular, el error es cercano a los 193.3', 
-# calculado con el MAE, y tiene una desviación estándar de 5.2'. 
-tune_ridge |> show_best(metric = 'mae', n = 5) 
-
-prediccion <- tibble(
-  property_id = dataset_kaggle$id_hogar,
-  price = predict(definitive_ridge_fit, new_data = dataset_kaggle) |> 
-    _$.pred
-)
-
-# Nota. Dejamos comentada la exportación para no modificar el archivo que ya
-# publicamos en Kaggle.
-write.csv(x = prediccion,
-          file = paste0(directorioResultados, 'ridge_imp1_hip1.csv'),
-          row.names = FALSE)
+  best_parms_ridge <- select_best(tune_ridge, metric = 'mae')
+  definitive_ridge <- finalize_workflow(
+    x = wf_ridge,
+    parameters = best_parms_ridge
+  )
+  
+  definitive_ridge_fit <- fit(object = definitive_ridge,
+                              data   = dataset)
+  
+  prediccion <- tibble(
+    id_hogar = dataset$id_hogar,
+    precio_obs = dataset$num_precio,
+    precio_est = predict(definitive_ridge_fit, new_data = dataset) |> _$.pred
+  )
+  
+  # Evaluamos el MAE de la validación cruzada para tener una noción del error
+  # que podríamos encontrar. En particular, el error es cercano a los 192.1', 
+  # calculado con el MAE, y tiene una desviación estándar de 5.2'. 
+  tune_ridge |> show_best(metric = 'mae', n = 5) 
+  
+  prediccion <- tibble(
+    property_id = dataset_kaggle$id_hogar,
+    price = predict(definitive_ridge_fit, new_data = dataset_kaggle) |> 
+      _$.pred
+  )
+  
+  # Nota. Dejamos comentada la exportación para no modificar el archivo que ya
+  # publicamos en Kaggle.
+  write.csv(x = prediccion,
+            file = paste0(directorioResultados, 'ridge_imp1_hip1.csv'),
+            row.names = FALSE)
 
 } else {
   tune_ridge <- readRDS(file = paste0(directorioDatos,
@@ -372,15 +383,15 @@ write.csv(x = prediccion,
 # 2.5| Lasso -------------------------------------------------------------------
 tune_grid_lasso <- grid_regular(
   # La penalización va desde 0.0001 hasta 1,000.
-  penalty(range = c(0.001, 1000)), # Relacionado con la penalización a la función de pérdida.
-  levels  = 100
+  penalty(range = c(0.001, 1000), trans = NULL), # Relacionado con la penalización a la función de pérdida.
+  levels  = 200
 )
 
 lasso_model <- linear_reg(
   mixture = 1, 
   penalty = tune()
-) %>%
-  set_mode("regression") %>%
+) |>
+  set_mode("regression") |>
   set_engine("glmnet")
 
 recipe_lasso <- recipe(num_precio ~ .,
@@ -395,16 +406,9 @@ recipe_lasso <- recipe(num_precio ~ .,
             degree = 2) |>
   step_dummy(all_nominal_predictors()) |> 
   step_zv(all_predictors()) |> 
-  # TODO. La interacción no la hemos podido hacer funcionar.
-  #step_interact(terms = ~ bin_zonaResidencial:bin_parqueadero +
-  # starts_with("cat_estrato"):bin_zonaLaboral +
-  # starts_with("cat_estrato"):starts_with("cat_localidad") +
-  #bin_casa:bin_parqueadero
-  # num_mt2:starts_with("cat_estrato") +
-  # num_mt2:starts_with("cat_localidad") +
-  # num_mt2:num_piso
-  #) |>
-  step_normalize(all_double_predictors())|>
+  step_interact(terms = ~ bin_zonaResidencial:bin_parqueadero +
+                  bin_casa:bin_parqueadero
+  ) |>
   step_normalize(all_predictors())
 
 wf_lasso <- workflow() |> 
@@ -418,7 +422,6 @@ if (primeraVez == TRUE) {
     grid = tune_grid_lasso,
     metrics = metric_set(mae)
   )
-  
   
   saveRDS(object = tune_lasso,
           file = paste0(directorioDatos, 'optim_parms_lasso_1.rds'))
@@ -439,8 +442,8 @@ if (primeraVez == TRUE) {
   )
   
   # Evaluamos el MAE de la validación cruzada para tener una noción del error
-  # que podríamos encontrar. En particular, el error es cercano a los 193.3', 
-  # calculado con el MAE, y tiene una desviación estándar de 5.2'. 
+  # que podríamos encontrar. En particular, el error es cercano a los 192.7', 
+  # calculado con el MAE, y tiene una desviación estándar de 4.8'. 
   tune_lasso |> show_best(metric = 'mae', n = 5) 
   
   prediccion <- tibble(
@@ -459,7 +462,7 @@ if (primeraVez == TRUE) {
   tune_lasso <- readRDS(file = paste0(directorioDatos,
                                       'optim_parms_lasso_1.rds'))
   prediccion_lasso <- read.csv(file = paste0(directorioResultados, 
-                                                  'lasso_imp1_hip2.csv'))
+                                                  'lasso_imp1_hip1.csv'))
 }
 
 # 2.6| Elastic net -------------------------------------------------------------
@@ -482,8 +485,7 @@ elasticNet_model <- linear_reg(
   set_engine('glmnet')
 
 recipe_elasticNet <- recipe(num_precio ~ .,
-                            data = dataset |> 
-                              st_drop_geometry()) |> 
+                            data = dataset |> st_drop_geometry()) |> 
   update_role(id_hogar, new_role = 'ID') |> 
   # Una muestra de entrenamiento puede no tener todas las localidades, por lo 
   # que es necesario que se asigne categorías anteriormente no vistas a la
@@ -534,7 +536,7 @@ if (primeraVez == TRUE) {
   )
   
   # Evaluamos el MAE de la validación cruzada para tener una noción del error
-  # que podríamos encontrar. En particular, el error es cercano a los 193.3', 
+  # que podríamos encontrar. En particular, el error es cercano a los 192.1', 
   # calculado con el MAE, y tiene una desviación estándar de 5.2'. 
   tune_elasticNet |> show_best(metric = 'mae', n = 5) 
   
@@ -556,8 +558,200 @@ if (primeraVez == TRUE) {
   prediccion_elasticNet <- read.csv(file = paste0(directorioResultados, 
                                                   'elasticNet_imp1_hip2.csv'))
 }
+
+# 2.7| Bagging ------------------------------------------------------------
+# Bagging es la implementación de random forest pero sin elegir RAIZ(p) 
+# variables predictivas en cada iteración aleatoriamente, donde p indica el
+# número de variables predictivas. En este sentido, usamos la misma función
+# pero fijamos en el máximo el número de variables explicativas.
+tune_grid_bagging <- grid_regular(
+  min_n(range = c(100L, 2000L), trans = NULL),
+  cost_complexity(range = c(0.001, 1000), trans = NULL),
+  levels = c(min_n = 5, cost_complexity = 10)
+)
+
+recipe_bagging <- recipe(num_precio ~ ., 
+                         data = dataset |> st_drop_geometry()) |> 
+  update_role(id_hogar, new_role = 'ID') |> 
+  step_dummy(all_nominal_predictors()) |> 
+  step_novel(all_nominal_predictors()) |> 
+  step_poly(num_distancia_calles, degree = 2)
+
+num_max_variables <- sum(recipe_bagging$var_info$role == 'predictor', 
+                         na.rm = TRUE)
+
+bagging_model <- bag_tree(
+  min_n = tune(),
+  cost_complexity = tune()
+) |> 
+  set_engine('rpart', times = 25L) |> 
+  set_mode('regression')
+
+wf_bagging <- workflow() |> 
+  add_recipe(recipe_bagging) |> 
+  add_model(bagging_model)
+
+if (primeraVez == TRUE) {
+  tune_bagging <- tune_grid(
+    wf_bagging,
+    resamples = block_folds,
+    grid = tune_grid_bagging,
+    metrics = metric_set(mae)
+  )
   
-# 2.7| Ensemble -----------------------------------------------------------
+  saveRDS(object = tune_bagging,
+          file = paste0(directorioDatos, 'optim_parms_bagging.rds'))
+  
+  best_parms_bagging <- select_best(tune_bagging, metric = 'mae')
+  definitive_bagging <- finalize_workflow(
+    x = wf_bagging, 
+    parameters = best_parms_bagging
+  )
+  
+  definitive_bagging_fit <- fit(object = definitive_bagging, 
+                                data   = dataset)
+  
+  # 165' y 4.5'.
+  tune_bagging |> show_best(metric = 'mae', n = 5) 
+  
+  prediccion <- tibble(
+    property_id = dataset_kaggle$id_hogar,
+    price = predict(definitive_bagging_fit, new_data = dataset_kaggle) |> 
+      _$.pred
+  )
+  
+  write.csv(x = prediccion,
+            file = paste0(directorioResultados, 'bagging_imp1.csv'),
+            row.names = FALSE)
+  
+} else {
+  tune_bagging <- readRDS(file = paste0(directorioDatos,
+                                        'optim_parms_bagging.rds'))
+  prediccion_bagging <- read.csv(file = paste0(directorioResultados,
+                                               'bagging_imp1.csv'))
+}
+
+# 2.8| Random forest ------------------------------------------------------
+# Usamos la misma receta de bagging porque la fórmula es la misma.
+tune_grid_rf <- grid_regular(
+  mtry(range = c(3, 12)),
+  min_n(range = c(100L, 2000L), trans = NULL),
+  trees(range = c(100L, 2000L), trans = NULL),
+  levels = c(mtry = 4, min_n = 5, trees = 5)
+)
+
+rf_model <- rand_forest(
+  mtry = tune(),
+  min_n = tune(),
+  trees = tune()
+) |> 
+  set_engine('randomForest') |> 
+  set_mode('regression')
+
+wf_rf <- workflow() |> 
+  add_recipe(recipe_bagging) |> 
+  add_model(rf_model)
+
+if (primeraVez == TRUE) {
+  tune_rf <- tune_grid(
+    wf_rf,
+    resamples = block_folds,
+    grid = tune_grid_rf,
+    metrics = metric_set(mae)
+  )
+  
+  saveRDS(object = tune_rf,
+          file = paste0(directorioDatos, 'optim_parms_rf.rds'))
+  
+  best_parms_rf <- select_best(tune_rf, metric = 'mae')
+  definitive_rf <- finalize_workflow(
+    x = wf_rf, 
+    parameters = best_parms_rf
+  )
+  
+  definitive_rf_fit <- fit(object = definitive_rf,
+                           data   = dataset)
+  
+  tune_rf |> show_best(metric = 'mae', n = 5) 
+  
+  prediccion <- tibble(
+    property_id = dataset_kaggle$id_hogar,
+    price = predict(definitive_rf_fit, new_data = dataset_kaggle) |> 
+      _$.pred
+  )
+  
+  write.csv(x = prediccion,
+            file = paste0(directorioResultados, 'rf_imp1.csv'),
+            row.names = FALSE)
+  
+} else {
+  tune_rf <- readRDS(file = paste0(directorioDatos,
+                                   'optim_parms_rf.rds'))
+  prediccion_rf <- read.csv(file = paste0(directorioResultados,
+                                          'rf_imp1.csv'))
+}
+
+# 2.9| Boosting -----------------------------------------------------------
+# Nuevamente, la receta de bagging es funcional para este caso, por lo que 
+# únicamente editamos los hiperparámetros.
+tune_grid_boost <- grid_regular(
+  min_n(range = c(1L, 2000L), trans = NULL),
+  trees(range = c(1L, 2000L), trans = NULL),
+  learn_rate(range = c(0.001, 0.01), trans = NULL),
+  levels = c(min_n = 20, trees = 10, learn_rate = 5)
+)
+
+boost_model <- boost_tree(
+  min_n = tune(),
+  trees = tune(),
+  learn_rate = tune()
+) |> 
+  set_mode('regression')
+
+wf_boost <- workflow() |> 
+  add_recipe(recipe_bagging) |> 
+  add_model(boost_model)
+
+if (primeraVez == TRUE) {
+  tune_boost <- tune_grid(
+    wf_boost,
+    resamples = block_folds,
+    grid = tune_grid_boost,
+    metrics = metric_set(mae)
+  )
+  
+  saveRDS(object = tune_boost,
+          file = paste0(directorioDatos, 'optim_parms_boost.rds'))
+  
+  best_parms_boost <- select_best(tune_boost, metric = 'mae')
+  definitive_boost <- finalize_workflow(
+    x = wf_boost, 
+    parameters = best_parms_boost
+  )
+  
+  definitive_boost_fit <- fit(object = definitive_boost,
+                              data   = dataset)
+  
+  tune_boost |> show_best(metric = 'mae', n = 5) 
+  
+  prediccion <- tibble(
+    property_id = dataset_kaggle$id_hogar,
+    price = predict(definitive_boost_fit, new_data = dataset_kaggle) |> 
+      _$.pred
+  )
+  
+  write.csv(x = prediccion,
+            file = paste0(directorioResultados, 'boost_imp1.csv'),
+            row.names = FALSE)
+  
+} else {
+  tune_boost <- readRDS(file = paste0(directorioDatos,
+                                      'optim_parms_boost.rds'))
+  prediccion_boost <- read.csv(file = paste0(directorioResultados,
+                                             'boosting_imp1.csv'))
+}
+
+# 2.10| Ensemble ----------------------------------------------------------
 # Los 3 modelos anteriores tienen ventajas y desventajas. Sin embargo, es 
 # posible combinar las bondades de las diferentes predicciones mediante una
 # combinación de pronósticos. Por ello, creamos una base de datos que
@@ -567,6 +761,9 @@ dataset_ensemble <- tibble(
   num_precio = dataset$num_precio,
   xgboost = predict(definitive_xgboost_fit, new_data = dataset) |> _$.pred,
   lightgbm = predict(definitive_lightgbm_fit, new_data = dataset) |> _$.pred,
+  lm = predict(definitive_lm_fit, new_data = dataset) |> _$.pred,
+  ridge = predict(definitive_ridge_fit, new_data = dataset) |> _$.pred,
+  lasso = predict(definitive_lasso_fit, new_data = dataset) |> _$.pred,
   elasticNet = predict(definitive_elasticNet_fit, new_data = dataset) |> _$.pred
 )
 
@@ -574,6 +771,9 @@ dataset_kaggle_ensemble <- tibble(
   id_hogar = dataset_kaggle$id_hogar,
   xgboost = predict(definitive_xgboost_fit, new_data = dataset_kaggle) |> _$.pred,
   lightgbm = predict(definitive_lightgbm_fit, new_data = dataset_kaggle) |> _$.pred,
+  lm = predict(definitive_lm_fit, new_data = dataset_kaggle) |> _$.pred,
+  ridge = predict(definitive_ridge_fit, new_data = dataset_kaggle) |> _$.pred,
+  lasso = predict(definitive_lasso_fit, new_data = dataset_kaggle) |> _$.pred,
   elasticNet = predict(definitive_elasticNet_fit, new_data = dataset_kaggle) |> _$.pred
 )
 
