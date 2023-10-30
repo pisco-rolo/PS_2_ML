@@ -8,4 +8,6 @@ El repositorio contiene las siguientes carpetas:
 - `views`: contiene las figuras y tablas exportadas al documento.
 
 Para ejecutar el código, basta con abrir el archivo `predicting_prices.Rproj` ubicado en la raíz del repositorio. Una vez abierto, la librería `here` permite emplear direcciones relativas independiente de quién esté ejecutando el código. Así, el siguiente paso es abrir el archivo denominado `main.R` en la carpeta `scripts`, y este archivo 'invoca' a _scripts_ auxiliares que generarán los resultados presentados en el documento `.pdf`. 
-* _Nota_. El _web scrapping_ es demorado, por lo cual hay un parámetro denominado `primeraVez` que definimos como `FALSE`. Si desea volver a realizar el _web scrapping_, basta con definirlo como `TRUE`. Sin embargo, al definirse como `FALSE`, el código va a cargar la base de datos almacenada en `stores`.
+* *Nota*. En las bases de datos contamos con dos especialmente pesadas. Estas se relacionan con el número de valiacionespor pasajero en TransMilenio, y con el censo de hogares de 2018. Para replicar el código es necesario descargar los datos de los siguientes enlaces de DropBox y adjuntarlos en la carpeta `stores`.
+    * https://www.dropbox.com/t/vOs4aIlWuo44VrQJ
+    * https://www.dropbox.com/t/L8b7ahb0oc1kz3Kg
